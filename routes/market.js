@@ -1,0 +1,74 @@
+const express = require('express');
+const router = express.Router();
+const { fetch, fetchJSON, UA } = require('../services/fetch');
+
+const OKX_IV = { '1m':'1m','5m':'5m','15m':'15m','30m':'30m','1h':'1H','4h':'4H','1d':'1D','1w':'1W' };
+
+async function fetchTicker(symbol) {
+  const coin = symbol.replace('USDT', '');
+  for (const url of [
+    `https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`,
+    `https://api1.binance.com/api/v3/ticker/24hr?symbol=${symbol}`,
+    `https://api2.binance.com/api/v3/ticker/24hr?symbol=${symbol}`,
+  ]) {
+    try { const d = await fetchJSON(url, 8000); if (d?.lastPrice) return d; } catch {}
+  }
+  const d = await fetchJSON(`https://www.okx.com/api/v5/market/ticker?instId=${coin}-USDT`, 8000);
+  const t = d.data[0];
+  const last = parseFloat(t.last), open = parseFloat(t.open24h);
+  return {
+    symbol, lastPrice: t.last,
+    priceChange: (last - open).toFixed(4),
+    priceChangePercent: (((last - open) / open) * 100).toFixed(2),
+    highPrice: t.high24h, lowPrice: t.low24h,
+    quoteVolume: t.volCcy24h, volume: t.vol24h,
+  };
+}
+
+async function fetchKlines(symbol, interval, limit = 300) {
+  const coin = symbol.replace('USDT', '');
+  const okxIv = OKX_IV[interval] || '1H';
+  for (const url of [
+    `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`,
+    `https://api1.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`,
+    `https://api2.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`,
+  ]) {
+    try {
+      const data = await fetchJSON(url, 15000);
+      if (Array.isArray(data) && data.length > 0) return data;
+    } catch {}
+  }
+  const d = await fetchJSON(`https://www.okx.com/api/v5/market/candles?instId=${coin}-USDT&bar=${okxIv}&limit=${Math.min(limit,300)}`, 15000);
+  return d.data.reverse().map(k => [parseInt(k[0]),k[1],k[2],k[3],k[4],k[5],parseInt(k[0])+3600000,k[7],0,'0','0','0']);
+}
+
+router.get('/ticker', async (req, res) => {
+  try { res.json(await fetchTicker((req.query.symbol||'BTCUSDT').toUpperCase())); }
+  catch (e) { res.status(502).json({ error: e.message }); }
+});
+
+router.get('/klines', async (req, res) => {
+  try {
+    res.json(await fetchKlines(
+      (req.query.symbol||'BTCUSDT').toUpperCase(),
+      req.query.interval||'1h',
+      parseInt(req.query.limit||'300')
+    ));
+  } catch (e) { res.status(502).json({ error: e.message }); }
+});
+
+router.get('/depth', async (req, res) => {
+  try {
+    const symbol = (req.query.symbol||'BTCUSDT').toUpperCase();
+    const limit = req.query.limit||'20';
+    for (const url of [
+      `https://fapi.binance.com/fapi/v1/depth?symbol=${symbol}&limit=${limit}`,
+      `https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=${limit}`,
+    ]) {
+      try { const r = await fetch(url,{headers:{'User-Agent':UA}}); if(r.ok) return res.json(await r.json()); } catch {}
+    }
+    res.json({bids:[],asks:[]});
+  } catch (e) { res.status(502).json({ error: e.message }); }
+});
+
+module.exports = router;
