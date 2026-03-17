@@ -680,6 +680,19 @@ select:focus { border-color:var(--blue); }
   /* header */
   .header { height:48px; padding:0 10px; gap:6px; overflow:visible; }
   .header .page-tabs { display:none!important; }
+  /* 底部固定tab */
+  nav.page-tabs {
+    position:fixed!important; bottom:0; left:0; right:0;
+    display:flex!important;
+    background:var(--bg1);
+    border:none; border-top:1px solid var(--border2);
+    border-radius:0;
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px)) 4px;
+    gap:0; z-index:9999;
+    justify-content:space-around;
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+  }
   #analysisControls { flex:1; justify-content:flex-end; }
   .logo { font-size:10px; letter-spacing:2px; }
   .last-update { display:none; }
