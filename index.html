@@ -2091,7 +2091,7 @@ function signalMeta(type, value, desc) {
 }
 
 function analyzeAll(klines) {
-  if (!klines || klines.length < 20) throw new Error('K线数据不足，该币种可能是新币或交易量过低');
+  if (!klines || klines.length < 5) throw new Error('该币种刚上线，暂无足够K线数据，请稍后再试');
   const opens   = klines.map(k => parseFloat(k[1]));
   const highs   = klines.map(k => parseFloat(k[2]));
   const lows    = klines.map(k => parseFloat(k[3]));
@@ -3515,6 +3515,11 @@ async function loadAll(silent=false) {
     // Klines
     if (klines.status === 'rejected') {
       showError('K线数据获取失败，请点击刷新重试');
+      setStatus('error');
+      return;
+    }
+    if (!Array.isArray(klines.value) || klines.value.length === 0) {
+      showError('该币种暂无K线数据，可能刚上线或已下架');
       setStatus('error');
       return;
     }
