@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-<title>合约全能工具箱</title>
+<title>TcTool · 合约分析</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23080a0f'/><text x='50%' y='54%' font-size='18' text-anchor='middle' dominant-baseline='middle' fill='%2300e676' font-family='monospace' font-weight='bold'>C</text></svg>">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -17,7 +17,7 @@
 
 <!-- Header -->
 <div class="header">
-  <div class="logo">CONTRACT<span>/</span>BOX</div>
+  <div class="logo">Tc<span>/</span>Tool</div>
   <!-- Page Tabs: desktop inline, mobile = fixed bottom (see below) -->
   <nav class="page-tabs" id="mainTabs">
     <button class="page-tab active" data-page="analysis" onclick="switchPage('analysis')">
@@ -495,60 +495,42 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════ -->
-  <!-- VOLUME ANALYSIS                            -->
-  <!-- ══════════════════════════════════════════ -->
-  <div class="section-label">量能 · 量价分析</div>
+  <!-- 量能分析 - 简化版 -->
+  <div class="section-label">量能分析</div>
 
-  <div class="grid-2">
-    <!-- Volume Profile -->
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">成交量分布 (VP)</div>
-        <span class="panel-badge badge-blue" id="vpBadge">--</span>
-      </div>
-      <div class="panel-body">
-        <div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-bottom:10px;">价格区间成交量分布 · <span style="color:var(--amber)">POC = 最大成交量价格</span></div>
-        <div id="vpContainer"></div>
-      </div>
-    </div>
-
-    <!-- Volume Delta -->
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">量能 Delta 分析</div>
-        <span class="panel-badge badge-blue" id="deltaBadge">--</span>
-      </div>
-      <div class="panel-body" id="deltaContent">
-        <div class="stat-grid-4" style="margin-bottom:14px;">
-          <div class="stat-mini"><div class="stat-mini-label">买入量(5根)</div><div class="stat-mini-value trend-up" id="buyVol5">--</div></div>
-          <div class="stat-mini"><div class="stat-mini-label">卖出量(5根)</div><div class="stat-mini-value trend-down" id="sellVol5">--</div></div>
-          <div class="stat-mini"><div class="stat-mini-label">Delta</div><div class="stat-mini-value" id="volDelta">--</div></div>
-          <div class="stat-mini"><div class="stat-mini-label">量能趋势</div><div class="stat-mini-value" id="volTrend">--</div></div>
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);letter-spacing:1px;margin-bottom:8px;">近20根K线 买卖力度分布</div>
-        <div id="deltaContainer"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Volume Price Analysis -->
   <div class="panel">
-    <div class="panel-header">
-      <div class="panel-title">量价综合分析</div>
+    <div class="panel-header" id="vpaPanel">
+      <div class="panel-title">量能综合判断</div>
       <span class="panel-badge badge-blue" id="vpaBadge">--</span>
     </div>
     <div class="panel-body" id="vpaContent">
-      <div class="grid-2">
-        <div>
-          <div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);letter-spacing:1px;margin-bottom:10px;">量价信号指标</div>
-          <div class="indicator-list" id="vpaList"></div>
+      <!-- 结论卡片 -->
+      <div id="vpaConclusion" style="font-size:14px;color:var(--text-dim);line-height:1.9;padding:14px 16px;background:var(--bg2);border-radius:var(--r-lg);margin-bottom:14px;"></div>
+      <!-- 关键数据 - 4个核心指标 -->
+      <div class="futures-grid">
+        <div class="futures-card">
+          <div class="futures-card-label">量能趋势</div>
+          <div class="futures-card-value" id="volTrend">--</div>
         </div>
-        <div>
-          <div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);letter-spacing:1px;margin-bottom:10px;">量价综合结论</div>
-          <div id="vpaConclusion" style="padding:14px;background:var(--bg2);border-radius:var(--radius);font-size:13px;color:var(--text-dim);line-height:1.8;"></div>
+        <div class="futures-card">
+          <div class="futures-card-label">买卖Delta</div>
+          <div class="futures-card-value" id="volDelta">--</div>
+        </div>
+        <div class="futures-card">
+          <div class="futures-card-label">POC价格</div>
+          <div class="futures-card-value" id="vpBadge" style="font-size:13px;">--</div>
+        </div>
+        <div class="futures-card">
+          <div class="futures-card-label">量价信号</div>
+          <div class="futures-card-value" id="deltaBadge">--</div>
         </div>
       </div>
+      <!-- 隐藏的原有容器，保持JS兼容 -->
+      <div id="vpContainer" style="display:none;"></div>
+      <div id="deltaContainer" style="display:none;"></div>
+      <div id="vpaList" style="display:none;"></div>
+      <div id="buyVol5" style="display:none;"></div>
+      <div id="sellVol5" style="display:none;"></div>
     </div>
   </div>
 
