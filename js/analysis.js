@@ -395,47 +395,153 @@ function mapLiveData(rawList) {
 }
 
 async function loadLivePage() {
-  // 防重入
   if (_liveLoading) return;
   _liveLoading = true;
 
-  const dot = document.getElementById('liveDot');
-  const btn = document.getElementById('liveRefreshBtn');
-  if (dot) dot.className = 'status-dot loading';
-  if (btn) btn.disabled = true;
-
   const grid = document.getElementById('liveStreamerGrid');
-  if (grid) grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:50px 0;color:var(--text-muted);">
-    <div style="display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;letter-spacing:1px;">
-      <div style="width:14px;height:14px;border:1.5px solid var(--text-muted);border-top-color:#ff6b9d;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
-      正在获取直播数据...
-    </div>
-  </div>`;
+  if (grid) grid.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">加载中...</div>';
 
   try {
-    const rawData = await fetchLiveData();
+    const r = await fetch(API + '/api/live');
+    const data = await r.json();
 
-    if (rawData && rawData.length > 0) {
-      _liveStreamers = mapLiveData(rawData);
-      showLiveDataSource('real', _liveStreamers.length);
+    if (data && data.list) {
+      renderLiveStats(data);
+      renderLiveStreamers(data.list);
     } else {
-      showLiveDataSource('failed', 0);
-      _liveStreamers = [];
+      if (grid) grid.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">暂无直播数据</div>';
     }
-  } catch (e) {
-    showLiveDataSource('failed', 0);
-    _liveStreamers = [];
+  } catch(e) {
+    if (grid) grid.innerHTML = '<div style="color:var(--red);font-size:13px;padding:20px 0;">获取数据失败，请稍后重试</div>';
   } finally {
     _liveLoading = false;
   }
+}
 
-  renderLivePage();
+function renderLiveStats(data) {
+  const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setEl('liveCount',  data.liveNum || 0);
+  setEl('liveOnline', fmt(data.onlineNum || 0));
+  setEl('liveViews',  fmt(data.viewNum || 0));
+  setEl('liveAll',    data.allNum || 0);
 
-  const now = new Date();
-  const upd = document.getElementById('liveLastUpdate');
-  if (upd) upd.textContent = `更新 ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-  if (dot) dot.className = _liveStreamers.length > 0 ? 'status-dot live' : 'status-dot error';
-  if (btn) btn.disabled = false;
+  const badge = document.getElementById('liveBadge');
+  if (badge) { badge.textContent = (data.liveNum || 0) + ' 个直播中'; badge.className = 'panel-badge badge-green'; }
+
+  const onlineBadge = document.getElementById('liveOnlineBadge');
+  if (onlineBadge) onlineBadge.textContent = (data.liveNum || 0) + ' 人直播中';
+
+  // 方向分布分析
+  const list = data.list || [];
+  let longCount = 0, shortCount = 0, neutralCount = 0;
+  const longKw  = ['多','看多','做多','买入','涨','long','bull','up'];
+  const shortKw = ['空','看空','做空','卖出','跌','short','bear','down'];
+
+  list.forEach(item => {
+    const title = (item.live_title || '').toLowerCase();
+    const isLong  = longKw.some(k => title.includes(k));
+    const isShort = shortKw.some(k => title.includes(k));
+    if (isLong && !isShort)       longCount++;
+    else if (isShort && !isLong)  shortCount++;
+    else                          neutralCount++;
+  });
+
+  const total = list.length || 1;
+  const longPct  = Math.round(longCount  / total * 100);
+  const shortPct = Math.round(shortCount / total * 100);
+
+  const longBar  = document.getElementById('liveLongBar');
+  const shortBar = document.getElementById('liveShortBar');
+  if (longBar)  longBar.style.width  = longPct + '%';
+  if (shortBar) shortBar.style.width = shortPct + '%';
+
+  setEl('liveLongCount',    longCount);
+  setEl('liveShortCount',   shortCount);
+  setEl('liveNeutralCount', '中性 ' + neutralCount + ' 人');
+
+  const dirBadge = document.getElementById('liveDirBadge');
+  let dirText, dirClass, conclusion;
+  if (longCount > shortCount * 1.5) {
+    dirText = '多头主导'; dirClass = 'badge-green';
+    conclusion = '当前在线主播中看多方向占主导（' + longPct + '%），市场整体情绪偏乐观。结合技术指标综合判断，多头信号偏强。';
+  } else if (shortCount > longCount * 1.5) {
+    dirText = '空头主导'; dirClass = 'badge-red';
+    conclusion = '当前在线主播中看空方向占主导（' + shortPct + '%），市场整体情绪偏悲观。需注意回调风险。';
+  } else {
+    dirText = '多空分歧'; dirClass = 'badge-amber';
+    conclusion = '当前主播多空方向分歧较大，市场情绪中性。建议等待方向明朗后再入场。';
+  }
+  if (dirBadge) { dirBadge.textContent = dirText; dirBadge.className = 'panel-badge ' + dirClass; }
+  const conclusionEl = document.getElementById('liveDirConclusion');
+  if (conclusionEl) conclusionEl.textContent = conclusion;
+}
+
+function renderLiveStreamers(list) {
+  const grid = document.getElementById('liveStreamerGrid');
+  if (!grid) return;
+  if (!list || list.length === 0) {
+    grid.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">暂无在线主播</div>';
+    return;
+  }
+
+  // 按在线人数排序
+  list.sort((a, b) => parseInt(b.live_online_count || 0) - parseInt(a.live_online_count || 0));
+
+  const longKw  = ['多','看多','做多','买入','涨','long','bull'];
+  const shortKw = ['空','看空','做空','卖出','跌','short','bear'];
+
+  grid.innerHTML = list.map((item, idx) => {
+    const title    = item.live_title || '暂无标题';
+    const online   = item.live_online_count || 0;
+    const views    = item.live_view_count   || 0;
+    const avatar   = item.avatar || '';
+    const liveUrl  = item.live_url || '';
+    const followers = fmt(item.totalFollowerCount || 0);
+
+    // 方向判断
+    const t = title.toLowerCase();
+    const isLong  = longKw.some(k => t.includes(k));
+    const isShort = shortKw.some(k => t.includes(k));
+    let dirLabel = '', dirColor = 'var(--text-muted)';
+    if (isLong && !isShort)      { dirLabel = '▲ 看多'; dirColor = 'var(--green)'; }
+    else if (isShort && !isLong) { dirLabel = '▼ 看空'; dirColor = 'var(--red)'; }
+    else                         { dirLabel = '→ 中性'; dirColor = 'var(--gold)'; }
+
+    const rankColor = idx === 0 ? '#FFD700' : idx === 1 ? '#C0C0C0' : idx === 2 ? '#CD7F32' : 'var(--text-muted)';
+
+    const clickHandler = liveUrl ? 'window.open("' + liveUrl + '","_blank")' : '';
+    return '<div class="streamer-card" style="cursor:' + (liveUrl?'pointer':'default') + ';" onclick="' + clickHandler + '">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">' +
+        '<div style="position:relative;flex-shrink:0;">' +
+          '<img src="' + avatar + '" style="width:44px;height:44px;border-radius:50%;object-fit:cover;background:var(--bg3);" onerror="this.src=\'\';this.style.opacity=0">' +
+          '<div style="position:absolute;bottom:-2px;right:-2px;width:12px;height:12px;border-radius:50%;background:var(--red);border:2px solid var(--bg1);"></div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+            '<span style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (item.name || item.userName || '未知主播') + '</span>' +
+            (idx < 3 ? '<span style="font-size:10px;font-weight:700;color:' + rankColor + '">TOP' + (idx+1) + '</span>' : '') +
+          '</div>' +
+          '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">粉丝 ' + followers + '</div>' +
+        '</div>' +
+        '<div style="font-family:var(--mono);font-size:12px;font-weight:700;color:' + dirColor + ';flex-shrink:0;">' + dirLabel + '</div>' +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + title + '">' + title + '</div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mono);">' +
+        '<span style="color:var(--red);display:flex;align-items:center;gap:4px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--red);display:inline-block;animation:pulse-dot 1.5s infinite;"></span>' + fmt(parseInt(online)) + ' 在线</span>' +
+        '<span style="color:var(--text-muted);">👁 ' + (typeof views === 'string' ? views : fmt(views)) + '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function showLiveDataSource(status, count) {
+  const badge = document.getElementById('liveSentBadge');
+  if (!badge) return;
+  if (status === 'real') {
+    badge.textContent = count + '个直播间';
+  } else {
+    badge.textContent = '加载中...';
+  }
 }
 
 function showLiveDataSource(status, count) {

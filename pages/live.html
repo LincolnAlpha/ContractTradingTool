@@ -1,10 +1,70 @@
 <div class="main">
-    <div class="section-label">广场直播</div>
-    <div class="panel" style="text-align:center;">
-      <div class="panel-body" style="padding:80px 20px;">
-        <div style="font-size:40px;margin-bottom:16px;opacity:0.25;">◐</div>
-        <div style="font-family:var(--mono);font-size:13px;color:var(--text-muted);letter-spacing:2px;margin-bottom:8px;">COMING SOON</div>
-        <div style="font-size:12px;color:var(--text-muted);">广场直播模块正在接入数据源，敬请期待</div>
+  <div class="section-label">广场直播</div>
+
+  <!-- 统计概览 -->
+  <div class="grid-2">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">直播概况</div>
+        <span class="panel-badge badge-green" id="liveBadge">加载中</span>
+      </div>
+      <div class="panel-body">
+        <div class="futures-grid">
+          <div class="futures-card">
+            <div class="futures-card-label">正在直播</div>
+            <div class="futures-card-value" id="liveCount" style="color:var(--red);">--</div>
+          </div>
+          <div class="futures-card">
+            <div class="futures-card-label">在线观众</div>
+            <div class="futures-card-value" id="liveOnline">--</div>
+          </div>
+          <div class="futures-card">
+            <div class="futures-card-label">总观看人次</div>
+            <div class="futures-card-value" id="liveViews">--</div>
+          </div>
+          <div class="futures-card">
+            <div class="futures-card-label">主播总数</div>
+            <div class="futures-card-value" id="liveAll">--</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 方向分布 -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">直播方向分布</div>
+        <span class="panel-badge badge-blue" id="liveDirBadge">--</span>
+      </div>
+      <div class="panel-body">
+        <div style="margin-bottom:10px;">
+          <div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-bottom:6px;">主播做单方向（基于直播标题分析）</div>
+          <div class="ls-bar-track">
+            <div class="ls-bar-long" id="liveLongBar" style="width:50%">多</div>
+            <div class="ls-bar-short" id="liveShortBar">空</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;font-family:var(--mono);margin-top:6px;">
+            <span style="color:var(--green);">▲ 看多 <span id="liveLongCount">--</span> 人</span>
+            <span style="color:var(--text-muted);" id="liveNeutralCount">中性 -- 人</span>
+            <span style="color:var(--red);">看空 <span id="liveShortCount">--</span> 人 ▼</span>
+          </div>
+        </div>
+        <div id="liveDirConclusion" style="font-size:13px;color:var(--text-dim);line-height:1.7;padding:10px 12px;background:var(--bg2);border-radius:var(--r-lg);"></div>
       </div>
     </div>
   </div>
+
+  <!-- 主播列表 -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">在线主播</div>
+      <span class="panel-badge badge-red" id="liveOnlineBadge">直播中</span>
+      <button onclick="loadLivePage()" style="margin-left:auto;background:none;border:1px solid var(--border2);color:var(--text-muted);font-size:11px;padding:4px 10px;border-radius:var(--r);cursor:pointer;font-family:var(--mono);">⟳ 刷新</button>
+    </div>
+    <div class="panel-body">
+      <div id="liveStreamerGrid" class="streamer-grid">
+        <div style="color:var(--text-muted);font-size:13px;padding:20px 0;">加载中...</div>
+      </div>
+    </div>
+  </div>
+
+</div>
