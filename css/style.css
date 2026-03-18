@@ -816,7 +816,7 @@ select:focus { border-color:var(--gold); box-shadow:0 0 0 2px var(--gold-dim); }
   .fg-card-grid { grid-template-columns:repeat(2,1fr) !important; }
 }
 
-@media(max-width:400px) {
+@media(max-width:360px) {
   .mobile-tab-label { display:none; }
   .mobile-tab-icon  { font-size:22px; }
   .mobile-tab { padding:8px 2px; }
