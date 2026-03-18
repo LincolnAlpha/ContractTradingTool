@@ -13,11 +13,13 @@ async function loadPageContent(page) {
   if (_pageCache[page]) return;
 
   try {
-    const r = await fetch(`pages/${page}.html?v=` + Date.now());
+    const r = await fetch(`pages/${page}.html`);
     if (!r.ok) throw new Error('load failed');
     const content = await r.text();
     container.innerHTML = content;
     _pageCache[page] = true;
+    // 等待 DOM 真正渲染完成
+    await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
   } catch(e) {
     console.warn(`Failed to load page: ${page}`, e);
   }
