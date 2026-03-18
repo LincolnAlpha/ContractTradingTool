@@ -950,3 +950,90 @@ select:focus { border-color:var(--gold); box-shadow:0 0 0 2px var(--gold-dim); }
   .ev-hist-row { grid-template-columns:auto 1fr auto; gap:6px; }
   .ev-hist-time, .ev-hist-entry { display:none; }
 }
+
+/* ── 计算器页面 ───────────────────────────────────────────────────────────── */
+.calc-label {
+  font-size:11px;
+  color:var(--text-muted);
+  font-family:var(--mono);
+  letter-spacing:1px;
+  margin-bottom:7px;
+  text-transform:uppercase;
+}
+.calc-coin-btn, .calc-mode-btn {
+  padding:5px 14px;
+  border-radius:var(--r);
+  font-family:var(--mono);
+  font-size:11px;
+  font-weight:700;
+  border:1px solid var(--border2);
+  background:var(--bg3);
+  color:var(--text-muted);
+  cursor:pointer;
+  transition:all 0.15s;
+  white-space:nowrap;
+}
+.calc-coin-btn.active, .calc-mode-btn.active {
+  background:var(--gold-dim);
+  color:var(--gold);
+  border-color:rgba(240,185,11,0.4);
+}
+.calc-coin-btn:hover, .calc-mode-btn:hover {
+  border-color:var(--gold);
+  color:var(--gold);
+}
+.calc-dir-btn {
+  padding:8px;
+  border-radius:var(--r);
+  font-family:var(--mono);
+  font-size:12px;
+  font-weight:700;
+  border:1px solid var(--border2);
+  background:var(--bg3);
+  color:var(--text-muted);
+  cursor:pointer;
+  transition:all 0.15s;
+}
+.calc-dir-btn.bull.active {
+  background:rgba(14,203,129,0.15);
+  color:var(--green);
+  border-color:rgba(14,203,129,0.4);
+}
+.calc-dir-btn.bear.active {
+  background:rgba(246,70,93,0.15);
+  color:var(--red);
+  border-color:rgba(246,70,93,0.4);
+}
+.calc-quick-btn {
+  padding:5px 10px;
+  border-radius:var(--r);
+  font-family:var(--mono);
+  font-size:11px;
+  border:1px solid var(--border2);
+  background:var(--bg3);
+  color:var(--text-muted);
+  cursor:pointer;
+  transition:all 0.15s;
+}
+.calc-quick-btn:hover { border-color:var(--gold); color:var(--gold); }
+.calc-sr-row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:8px 12px;
+  border-radius:var(--r);
+  background:var(--bg2);
+  font-size:12px;
+}
+.calc-advice-item {
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  font-size:13px;
+  color:var(--text-dim);
+  line-height:1.6;
+  padding:8px 0;
+  border-bottom:1px solid var(--border);
+}
+.calc-advice-item:last-child { border-bottom:none; }
+.calc-advice-icon { flex-shrink:0; font-size:14px; }
