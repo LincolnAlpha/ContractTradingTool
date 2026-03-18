@@ -779,11 +779,13 @@ select:focus { border-color:var(--gold); box-shadow:0 0 0 2px var(--gold-dim); }
   .price-stats { gap:18px; }
 
   /* score */
-  .score-section    { padding:16px 18px; border-radius:var(--r-lg); }
-  .score-header     { flex-wrap:nowrap; gap:6px; }
-  #briefBtn         { font-size:10px; padding:4px 8px; white-space:nowrap; }
-  .score-meter-wrap { grid-template-columns:1fr 80px 1fr; gap:8px; }
-  .score-num-long, .score-num-short { font-size:28px; }
+  .score-section    { padding:14px 16px; border-radius:var(--r-lg); overflow:visible; }
+  .score-header     { flex-wrap:wrap; gap:6px; align-items:center; }
+  .score-header > div:first-child { white-space:nowrap; }
+  #scoreBadge       { max-width:none; }
+  #briefBtn         { font-size:10px; padding:4px 8px; white-space:nowrap; margin-left:auto; }
+  .score-meter-wrap { grid-template-columns:1fr 72px 1fr; gap:6px; }
+  .score-num-long, .score-num-short { font-size:24px; }
   #scoreBadge { font-size:11px; padding:7px 14px; width:100%; text-align:center; }
   .signal-counts { gap:10px; }
 
