@@ -1,3 +1,67 @@
+
+// 消息面综合判断（基于多维数据）
+function calcNewsSentiment(indicators, fgData, fundingData, lsData) {
+  const labelEl = document.getElementById('newsSentLabel');
+  const descEl  = document.getElementById('newsSentDesc');
+  if (!labelEl || !descEl) return;
+
+  let score = 0;
+  const reasons = [];
+
+  // 1. 恐惧贪婪指数
+  if (fgData?.status === 'fulfilled' && fgData.value) {
+    const fg = parseInt(fgData.value.value);
+    if (fg >= 70)      { score += 2; reasons.push(`贪婪指数${fg}(极度贪婪)`); }
+    else if (fg >= 55) { score += 1; reasons.push(`贪婪指数${fg}(偏乐观)`); }
+    else if (fg <= 25) { score -= 2; reasons.push(`恐惧指数${fg}(极度恐惧)`); }
+    else if (fg <= 40) { score -= 1; reasons.push(`恐惧指数${fg}(偏悲观)`); }
+  }
+
+  // 2. 资金费率
+  if (fundingData?.status === 'fulfilled' && fundingData.value) {
+    const fr = parseFloat(fundingData.value[0]?.fundingRate || 0) * 100;
+    if (fr > 0.05)       { score += 1; reasons.push(`资金费率+${fr.toFixed(3)}%(多头积极)`); }
+    else if (fr < -0.02) { score -= 1; reasons.push(`资金费率${fr.toFixed(3)}%(空头主导)`); }
+  }
+
+  // 3. 多空比
+  if (lsData?.status === 'fulfilled' && lsData.value) {
+    const ls = parseFloat(lsData.value.longShortRatio || lsData.value[0]?.longShortRatio || 1);
+    if (ls > 1.3)      { score += 1; reasons.push(`多空比${ls.toFixed(2)}(多头占优)`); }
+    else if (ls < 0.8) { score -= 1; reasons.push(`多空比${ls.toFixed(2)}(空头占优)`); }
+  }
+
+  // 4. 技术指标综合
+  if (indicators) {
+    const vals = Object.values(indicators);
+    const bulls = vals.filter(v => v.type === 'bull').length;
+    const bears = vals.filter(v => v.type === 'bear').length;
+    const total = bulls + bears || 1;
+    const techScore = (bulls - bears) / total;
+    if (techScore > 0.3)       { score += 2; reasons.push(`技术面偏多(${bulls}利多/${bears}利空)`); }
+    else if (techScore > 0.1)  { score += 1; reasons.push(`技术面略多`); }
+    else if (techScore < -0.3) { score -= 2; reasons.push(`技术面偏空(${bears}利空/${bulls}利多)`); }
+    else if (techScore < -0.1) { score -= 1; reasons.push(`技术面略空`); }
+  }
+
+  // 综合结论
+  let label, color, desc;
+  if (score >= 4)       { label = '强烈利多'; color = 'var(--green)'; }
+  else if (score >= 2)  { label = '偏多';     color = 'var(--green)'; }
+  else if (score >= 1)  { label = '略偏多';   color = '#8bc34a'; }
+  else if (score <= -4) { label = '强烈利空'; color = 'var(--red)'; }
+  else if (score <= -2) { label = '偏空';     color = 'var(--red)'; }
+  else if (score <= -1) { label = '略偏空';   color = '#ff9800'; }
+  else                  { label = '中性';     color = 'var(--gold)'; }
+
+  desc = reasons.slice(0, 3).join('，');
+  if (!desc) desc = '数据不足，暂无判断';
+
+  labelEl.textContent = label;
+  labelEl.style.color = color;
+  descEl.textContent  = desc;
+}
+
 // ── analysis ──────────────────────────────────────────────────────────────────
 
 // DOM 安全赋值辅助函数
@@ -28,7 +92,7 @@ async function loadAll(silent=false) {
     // Parallel fetch
     document.getElementById('loaderText').textContent = '并行获取市场数据...';
     const coin = symbol.replace('USDT','').replace('BUSD','');
-    const [klines, ticker, fundingData, oiData, lsData, fgData, forceOrdersData, depthData, newsData] = await Promise.allSettled([
+    const [klines, ticker, fundingData, oiData, lsData, fgData, forceOrdersData, depthData] = await Promise.allSettled([
       getKlines(symbol, interval, 300),
       getTicker(symbol),
       getFundingRate(symbol),
@@ -37,7 +101,6 @@ async function loadAll(silent=false) {
       getFearGreed(),
       getForceOrders(symbol),
       getOrderBook(symbol, 20),
-      getNewsForSentiment(coin)
     ]);
 
     document.getElementById('loaderText').textContent = '计算技术指标...';
