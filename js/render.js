@@ -743,6 +743,7 @@ function renderOrderBook(depth, price) {
 
   // Wall detection
   const walls = [];
+  const maxSize = Math.max(maxBidSize, maxAskSize);
   depth.bids.slice(0, 20).forEach(b => { if (parseFloat(b[1]) > maxSize * 0.4) walls.push({ side:'买', price: parseFloat(b[0]), size: parseFloat(b[1]) }); });
   depth.asks.slice(0, 20).forEach(a => { if (parseFloat(a[1]) > maxSize * 0.4) walls.push({ side:'卖', price: parseFloat(a[0]), size: parseFloat(a[1]) }); });
   document.getElementById('obWall').textContent = walls.length ? `${walls.length}个大单墙` : '暂无大单墙';
