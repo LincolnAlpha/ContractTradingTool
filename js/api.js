@@ -258,28 +258,24 @@ async function getNewsAlternative() {
 
 // ── 消息面数据 ────────────────────────────────────────────────────────────────
 async function getNewsForSentiment(coin = 'BTC') {
-  // CryptoPanic 公开API（无需key）
-  const url = `https://cryptopanic.com/api/v1/posts/?auth_token=free&currencies=${coin}&public=true&kind=news`;
   try {
-    const r = await fetch(`${API}/api/proxy?u=${encodeURIComponent(url)}`);
-    if (!r.ok) throw new Error('news fetch failed');
-    const d = await r.json();
-    return d.results || [];
+    const [cv, panic] = await Promise.allSettled([
+      getNewsCV(coin, '1h'),
+      getNewsPanic(coin, '1h'),
+    ]);
+    const cvItems    = cv.status === 'fulfilled' && cv.value?.results ? cv.value.results : [];
+    const panicItems = panic.status === 'fulfilled' && panic.value?.results ? panic.value.results : [];
+    // 통합 포맷으로 변환
+    const normalize = (items, source) => items.map(item => ({
+      title: item.title || item.headline || '',
+      published_at: item.published_at || item.publishedAt || item.date || '',
+      source: { title: source },
+      votes: { positive: item.votes?.positive || 0, negative: item.votes?.negative || 0 },
+      url: item.url || ''
+    }));
+    const all = [...normalize(panicItems, 'CryptoPanic'), ...normalize(cvItems, 'CryptoCV')];
+    return all.slice(0, 20);
   } catch(e) {
-    // fallback: alternative.me news
-    try {
-      const r2 = await fetch(`${API}/api/proxy?u=${encodeURIComponent('https://api.alternative.me/v3/news/?limit=20')}`);
-      const d2 = await r2.json();
-      return (d2.data || []).map(n => ({
-        title: n.title,
-        url: n.url,
-        published_at: n.published_at,
-        votes: { positive: 0, negative: 0, important: 0 },
-        source: { title: n.source?.name || 'News' },
-        _sentiment: 'neutral'
-      }));
-    } catch(e2) {
-      return [];
-    }
+    return [];
   }
 }
