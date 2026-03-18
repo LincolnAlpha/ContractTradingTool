@@ -47,12 +47,11 @@ async function loadEventPage() {
   evUpdateStats();
   evRenderActiveOrders();
   evRenderHistory();
-  await evLoadMarketData();
-  evCalcSuggestion();
+  await evLoadMarketData(true); // 首次加载计算建议
   evStartSettleLoop();
 }
 
-async function evLoadMarketData() {
+async function evLoadMarketData(recalc = true) {
   const symbol = _evCoin + 'USDT';
   try {
     const interval = _evDuration <= 10 ? '1m' : _evDuration <= 30 ? '5m' : _evDuration <= 60 ? '15m' : '1h';
@@ -63,6 +62,8 @@ async function evLoadMarketData() {
     _evTicker = ticker;
     _evKlines = klines;
     evRenderPrice();
+    // 只在明确需要重新计算时才更新建议（切换币种/时间维度时）
+    if (recalc) evCalcSuggestion();
   } catch(e) {}
 }
 
@@ -278,6 +279,25 @@ function evPlaceOrder(direction) {
   const acc = evGetAccount();
   if (amount > acc.balance) { alert(`余额不足，当前余额 ${acc.balance.toFixed(2)} USDT`); return; }
 
+  // 确认弹窗
+  const dirText  = direction === 'up' ? '▲ 买涨' : '▼ 买跌';
+  const timeText = _evDuration >= 1440 ? '1天' : _evDuration >= 60 ? '1小时' : _evDuration + '分钟';
+  const price    = fmtPrice(parseFloat(_evTicker.lastPrice));
+  const win      = (amount * 1.8).toFixed(2);
+  const sug      = window._evSuggestion;
+  const sugText  = sug ? (sug.direction === direction ? '✅ 与系统建议一致' : '⚠️ 与系统建议相反') : '';
+
+  if (!confirm(
+    '确认下单？\n\n' +
+    '币种：' + _evCoin + '/USDT\n' +
+    '方向：' + dirText + '\n' +
+    '时间：' + timeText + '\n' +
+    '入场价：$' + price + '\n' +
+    '金额：' + amount + ' USDT\n' +
+    '猜对得：' + win + ' USDT' +
+    (sugText ? '\n\n' + sugText : '')
+  )) return;
+
   const entryPrice = parseFloat(_evTicker.lastPrice);
   const expireAt   = Date.now() + _evDuration * 60 * 1000;
   const suggestion = window._evSuggestion;
@@ -307,10 +327,7 @@ function evPlaceOrder(direction) {
   evUpdateBalance();
   evRenderActiveOrders();
 
-  // 反馈
-  const dirText = direction === 'up' ? '▲ 买涨' : '▼ 买跌';
-  const timeText = _evDuration >= 1440 ? '1天' : _evDuration >= 60 ? '1小时' : _evDuration + '分钟';
-  showToast(`已下单 ${dirText} ${_evCoin} · ${amount} USDT · ${timeText}后结算`);
+  showToast('已下单 ' + dirText + ' ' + _evCoin + ' · ' + amount + ' USDT · ' + timeText + '后结算');
 }
 
 // ── 结算逻辑 ──────────────────────────────────────────────────────────────────
@@ -320,6 +337,14 @@ function evStartSettleLoop() {
     evCheckSettle();
     evUpdateCountdowns();
   }, 1000);
+  // 每30秒静默刷新价格（不重新计算建议）
+  setInterval(() => {
+    if (_evCoin && _evTicker) {
+      getTicker(_evCoin + 'USDT').then(t => {
+        if (t) { _evTicker = t; evRenderPrice(); }
+      }).catch(() => {});
+    }
+  }, 30000);
 }
 
 async function evCheckSettle() {
@@ -516,9 +541,11 @@ function evSelectCoin(coin) {
   _evCoin = coin;
   document.getElementById('evBtnBTC')?.classList.toggle('active', coin === 'BTC');
   document.getElementById('evBtnETH')?.classList.toggle('active', coin === 'ETH');
-  document.getElementById('evUpCoin').textContent   = coin + ' 涨';
-  document.getElementById('evDownCoin').textContent = coin + ' 跌';
-  evLoadMarketData().then(() => evCalcSuggestion());
+  const upEl = document.getElementById('evUpCoin');
+  const dnEl = document.getElementById('evDownCoin');
+  if (upEl) upEl.textContent   = coin + ' 涨';
+  if (dnEl) dnEl.textContent   = coin + ' 跌';
+  evLoadMarketData(true); // 切换币种，重新计算建议
 }
 
 function evSelectDuration(mins) {
@@ -526,7 +553,7 @@ function evSelectDuration(mins) {
   document.querySelectorAll('.ev-time-btn').forEach(btn => {
     btn.classList.toggle('active', parseInt(btn.dataset.duration) === mins);
   });
-  evLoadMarketData().then(() => evCalcSuggestion());
+  evLoadMarketData(true); // 切换时间，重新计算建议
 }
 
 function evResetAccount() {
