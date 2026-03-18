@@ -99,7 +99,7 @@
     <div class="score-header">
       <div style="font-size:12px;color:var(--text-muted);font-family:var(--mono);letter-spacing:1px;">综合评分</div>
       <span class="panel-badge" id="scoreBadge">计算中...</span>
-      <button class="btn" id="briefBtn" onclick="openBrief()" style="margin-left:auto;font-size:11px;padding:5px 12px;display:flex;align-items:center;gap:5px;">📋 生成简报</button>
+      <button class="btn" id="briefBtn" onclick="openBrief()" style="margin-left:auto;font-size:11px;padding:5px 12px;display:flex;align-items:center;gap:5px;flex-shrink:0;">📖 工具介绍</button>
     </div>
     <div class="score-meter-wrap">
       <div>
@@ -582,8 +582,70 @@
   <div id="liveTagCloud"></div>
   <div id="liveInsight"></div>
   <div id="liveTagBadge"></div>
-  <div id="briefModal"></div>
-  <div id="briefContent"></div>
+  <!-- 工具介绍弹窗 -->
+  <div id="briefModal" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,0.75);padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch;" onclick="if(event.target===this)closeBrief()">
+    <div style="max-width:640px;margin:0 auto;background:var(--bg1);border:1px solid var(--border2);border-radius:var(--r-xl);overflow:hidden;">
+      <!-- 头部 -->
+      <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">📖</span>
+          <div>
+            <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--gold);letter-spacing:2px;">TcTool · 工具介绍</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">合约分析全能工具箱</div>
+          </div>
+        </div>
+        <button onclick="closeBrief()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:var(--r);">×</button>
+      </div>
+      <!-- 内容 -->
+      <div style="padding:24px;display:flex;flex-direction:column;gap:20px;">
+
+        <!-- 简介 -->
+        <div style="font-size:14px;color:var(--text-dim);line-height:1.8;">
+          TcTool 是一款面向加密货币合约交易者的专业分析工具，整合了多维度技术指标、交易系统和市场情绪数据，帮助你在交易决策时获得更全面的市场视角。
+        </div>
+
+        <!-- 模块介绍 -->
+        <div style="display:flex;flex-direction:column;gap:12px;">
+
+          <div style="background:var(--bg2);border-radius:var(--r-lg);padding:16px;">
+            <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--gold);letter-spacing:1px;margin-bottom:8px;">① 综合评分</div>
+            <div style="font-size:13px;color:var(--text-dim);line-height:1.7;">基于全部技术指标的综合多空判断，实时计算利多/利空/中性信号数量，给出强烈做多、偏多、中性、偏空、强烈做空五档评级。</div>
+          </div>
+
+          <div style="background:var(--bg2);border-radius:var(--r-lg);padding:16px;">
+            <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--blue);letter-spacing:1px;margin-bottom:8px;">② 市场情绪</div>
+            <div style="font-size:13px;color:var(--text-dim);line-height:1.7;">整合技术信号标签和恐惧贪婪指数，自动生成市场信号摘要和操作建议，直观呈现当前市场情绪状态。</div>
+          </div>
+
+          <div style="background:var(--bg2);border-radius:var(--r-lg);padding:16px;">
+            <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--green);letter-spacing:1px;margin-bottom:8px;">③ 量能 · 流动性 · 清算</div>
+            <div style="font-size:13px;color:var(--text-dim);line-height:1.7;">实时监控资金费率、持仓量、多空比等合约核心数据，结合量能分析给出买卖力量判断，并展示清算热力图和订单簿深度。</div>
+          </div>
+
+          <div style="background:var(--bg2);border-radius:var(--r-lg);padding:16px;">
+            <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--purple);letter-spacing:1px;margin-bottom:8px;">④ 技术指标</div>
+            <div style="font-size:13px;color:var(--text-dim);line-height:1.7;">涵盖趋势、动量、波动率、成交量四大类共20+指标，包括 MACD、RSI、KDJ、布林带、一目均衡表、ADX 等，每个指标直接给出利多/利空结论。</div>
+          </div>
+
+          <div style="background:var(--bg2);border-radius:var(--r-lg);padding:16px;">
+            <div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--gold);letter-spacing:1px;margin-bottom:8px;">⑤ 交易系统</div>
+            <div style="font-size:13px;color:var(--text-dim);line-height:1.7;">内置维加斯通道、斐波那契、艾略特波浪、顾比复合均线、TD序列、价格行为（BOS/FVG/OB）、威科夫理论、锚定VWAP等专业交易系统，一键获取系统信号。</div>
+          </div>
+
+        </div>
+
+        <!-- 免责声明 -->
+        <div style="background:rgba(240,185,11,0.06);border:1px solid rgba(240,185,11,0.2);border-radius:var(--r-lg);padding:14px;">
+          <div style="font-size:11px;color:var(--gold);font-family:var(--mono);margin-bottom:6px;">⚠ 免责声明</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.7;">本工具所有数据仅供参考，不构成任何投资建议。加密货币市场风险极高，请根据自身风险承受能力谨慎决策。</div>
+        </div>
+
+        <!-- 关闭按钮 -->
+        <button onclick="closeBrief()" style="background:var(--gold);color:#000;font-weight:700;font-family:var(--mono);font-size:12px;padding:10px;border:none;border-radius:var(--r-lg);cursor:pointer;letter-spacing:1px;">关 闭</button>
+      </div>
+    </div>
+  </div>
+  <div id="briefContent" style="display:none;"></div>
   <div id="copyBriefBtn"></div>
   <div id="briefTimestamp"></div>
   <div id="fundingNote"></div>

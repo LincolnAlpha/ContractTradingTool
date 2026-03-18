@@ -2036,11 +2036,6 @@ function renderLiveTagCloud(data) {
 }
 
 function openBrief() {
-  if (!_lastAnalysisData) {
-    alert('请先在合约分析页加载数据');
-    return;
-  }
-  generateBrief(_lastAnalysisData);
   document.getElementById('briefModal').style.display = 'block';
   document.body.style.overflow = 'hidden';
 }
