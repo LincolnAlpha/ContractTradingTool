@@ -832,3 +832,10 @@ select:focus { border-color:var(--gold); box-shadow:0 0 0 2px var(--gold-dim); }
 @media(max-width:400px) {
   .fg-card-grid { grid-template-columns:1fr; }
 }
+
+/* 移动端弹窗底部留出 Tab Bar 空间 */
+@media(max-width:768px) {
+  #briefModal {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}

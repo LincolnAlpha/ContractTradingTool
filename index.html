@@ -611,7 +611,7 @@
   <div id="liveLastUpdate"></div>
 </div>
   <!-- 工具介绍弹窗 -->
-  <div id="briefModal" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,0.75);padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch;" onclick="if(event.target===this)closeBrief()">
+  <div id="briefModal" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,0.75);padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom, 0px));overflow-y:auto;-webkit-overflow-scrolling:touch;" onclick="if(event.target===this)closeBrief()">
     <div style="max-width:640px;margin:0 auto;background:var(--bg1);border:1px solid var(--border2);border-radius:var(--r-xl);overflow:hidden;">
       <!-- 头部 -->
       <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
