@@ -9,7 +9,7 @@ async function loadPageContent(page) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  // 已加载则跳过
+  // 已加载则跳过 fetch，但仍然 resolve
   if (_pageCache[page]) return;
 
   try {
@@ -46,9 +46,11 @@ function switchPage(page) {
   });
 
   // Load page data
-  // event 페이지는 placeholder, JS 렌더링 건너뜀
-  if (page === 'monitor') loadMonitor();
-  else if (page === 'live') loadLivePage();
+  loadPageContent(page).then(() => {
+    if (page === 'event'   && typeof loadEventPage === 'function') loadEventPage();
+    if (page === 'monitor' && typeof loadMonitor   === 'function') loadMonitor();
+    if (page === 'live'    && typeof loadLivePage  === 'function') loadLivePage();
+  });
 }
 
 function initTheme() {
