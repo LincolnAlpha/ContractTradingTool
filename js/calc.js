@@ -2,53 +2,88 @@
 
 let _calcCoin     = 'BTC';
 let _calcDir      = 'long';
-let _calcMode     = 'cross';   // cross / isolated
-let _calcSLMode   = 'auto';    // auto / manual
+let _calcMode     = 'cross';
+let _calcSLMode   = 'auto';
 let _calcPrice    = 0;
 let _calcTimer    = null;
 let _calcATR      = 0;
+let _calcKlines   = null;
+let _calcHighs    = [];
+let _calcLows     = [];
+let _calcCloses   = [];
+let _calcVolumes  = [];
 
 // ── 初始化 ────────────────────────────────────────────────────────────────────
 async function loadCalcPage() {
-  // 检查是否有分析数据
-  const hasData = window._lastAnalysisData && window._lastAnalysisData.closes && window._lastAnalysisData.closes.length > 0;
+  // 直接显示计算器，不依赖合约分析页
   const tipEl  = document.getElementById('calcNoDataTip');
   const mainEl = document.getElementById('calcMain');
-  if (tipEl)  tipEl.style.display  = hasData ? 'none' : 'block';
-  if (mainEl) mainEl.style.display = hasData ? 'block' : 'none';
-  if (!hasData) return;
-
-  // 从分析数据提取ATR
-  const data = window._lastAnalysisData;
-  if (data?.indicators?.atr) {
-    const atrVal = parseFloat(String(data.indicators.atr.value).replace(/[$,]/g, ''));
-    if (!isNaN(atrVal) && atrVal > 0) _calcATR = atrVal;
-  }
-  console.log('[Calc] _lastAnalysisData keys:', data ? Object.keys(data) : 'null');
-  console.log('[Calc] ATR:', _calcATR, 'has highs:', !!data?.highs, 'highs.length:', data?.highs?.length);
+  if (tipEl)  tipEl.style.display = 'none';
+  if (mainEl) mainEl.style.display = 'block';
 
   // 初始化币种搜索框
   const symInp = document.getElementById('calcSymbolInput');
   if (symInp && !symInp.value) symInp.value = _calcCoin + '/USDT';
 
-  // 获取当前价格
-  await calcFetchPrice();
-
-  // 填入当前价
-  const entryEl = document.getElementById('calcEntryPrice');
-  if (entryEl && !entryEl.value) entryEl.value = _calcPrice;
+  // 加载行情和K线数据
+  await calcLoadAllData();
 
   calcUpdate();
-  calcRenderSR();
 
-  // 定时刷新价格
+  // 定时刷新价格（5秒）
   if (_calcTimer) clearInterval(_calcTimer);
   _calcTimer = setInterval(async () => {
-    await calcFetchPrice();
-    calcUpdate();
-    const priceEl = document.getElementById('calcCurrentPrice');
-    if (priceEl) priceEl.textContent = '当前价: $' + fmtPrice(_calcPrice);
+    try {
+      const t = await getTicker(_calcCoin + 'USDT');
+      if (t) {
+        _calcPrice = parseFloat(t.lastPrice);
+        const priceEl = document.getElementById('calcCurrentPrice');
+        if (priceEl) priceEl.textContent = '当前价: $' + fmtPrice(_calcPrice);
+        calcUpdate();
+      }
+    } catch(e) {}
   }, 5000);
+}
+
+// 加载计算器所需全部数据（独立于合约分析页）
+async function calcLoadAllData() {
+  const symbol   = _calcCoin + 'USDT';
+  const interval = '1h';
+  try {
+    const [ticker, klines] = await Promise.all([
+      getTicker(symbol),
+      getKlines(symbol, interval, 200)
+    ]);
+
+    if (ticker) {
+      _calcPrice = parseFloat(ticker.lastPrice);
+      const priceEl = document.getElementById('calcCurrentPrice');
+      if (priceEl) priceEl.textContent = '当前价: $' + fmtPrice(_calcPrice);
+    }
+
+    if (klines && klines.length > 5) {
+      _calcKlines = klines;
+      // 提取高低收量
+      _calcHighs   = klines.map(k => parseFloat(k[2]));
+      _calcLows    = klines.map(k => parseFloat(k[3]));
+      _calcCloses  = klines.map(k => parseFloat(k[4]));
+      _calcVolumes = klines.map(k => parseFloat(k[5]));
+
+      // 计算ATR
+      const atrArr = calcATR(_calcHighs, _calcLows, _calcCloses, 14);
+      const lastATR = atrArr[atrArr.length - 1];
+      if (lastATR && !isNaN(lastATR)) _calcATR = lastATR;
+
+      // 填入当前价
+      const entryEl = document.getElementById('calcEntryPrice');
+      if (entryEl && !entryEl.value) entryEl.value = _calcPrice;
+
+      // 渲染支撑阻力
+      calcRenderSR();
+    }
+  } catch(e) {
+    console.warn('[Calc] data load error:', e);
+  }
 }
 
 async function calcFetchPrice() {
@@ -259,13 +294,16 @@ function calcRenderSR() {
   const listEl = document.getElementById('calcSRList');
   if (!listEl) return;
 
-  const data = window._lastAnalysisData;
-  if (!data || !data.closes || data.closes.length < 5) {
-    listEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">请先在合约分析页加载数据</div>';
+  // 优先使用计算器自己的数据，其次用合约分析页数据
+  const closes = _calcCloses.length > 0 ? _calcCloses : (window._lastAnalysisData?.closes || []);
+  const highs  = _calcHighs.length  > 0 ? _calcHighs  : (window._lastAnalysisData?.highs  || []);
+  const lows   = _calcLows.length   > 0 ? _calcLows   : (window._lastAnalysisData?.lows   || []);
+  const indicators = window._lastAnalysisData?.indicators || {};
+
+  if (closes.length < 5) {
+    listEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">加载中...</div>';
     return;
   }
-
-  const { indicators, closes, highs, lows } = data;
   const price = _calcPrice || closes[closes.length - 1];
   const rows  = [];
 
@@ -535,8 +573,11 @@ function calcSelectSymbol(base) {
   const hidden = document.getElementById('calcCoinValue');
   if (hidden) hidden.value = base;
   calcCloseDropdown();
-  calcFetchPrice().then(calcUpdate);
-  calcRenderSR();
+  // 重置K线数据，重新加载
+  _calcKlines = null; _calcHighs = []; _calcLows = []; _calcCloses = []; _calcVolumes = [];
+  const entryEl = document.getElementById('calcEntryPrice');
+  if (entryEl) entryEl.value = '';
+  calcLoadAllData().then(calcUpdate);
 }
 
 function calcCloseDropdown() {
