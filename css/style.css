@@ -722,7 +722,6 @@ select:focus { border-color:var(--gold); box-shadow:0 0 0 2px var(--gold-dim); }
   padding:6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
   overflow:hidden;
 }
-}
 .mobile-tab {
   flex:1;
   display:flex;
