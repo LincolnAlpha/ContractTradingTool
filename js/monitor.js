@@ -33,12 +33,21 @@ async function loadMonitor(force = false) {
 // ── 价格异动 ──────────────────────────────────────────────────────────────────
 async function monLoadPriceAlerts() {
   try {
-    const r = await fetch(`${API}/api/proxy?u=${encodeURIComponent(BINANCE_F + '/fapi/v1/ticker/24hr')}`);
-    const data = await r.json();
+    // 使用服务器已有的 ticker 接口获取主流合约
+    // 先获取所有合约列表
+    const exchangeR = await fetch(`${API}/api/proxy?u=${encodeURIComponent(BINANCE_F + '/fapi/v1/ticker/24hr')}`);
+    const rawData = await exchangeR.json();
 
-    // 过滤 USDT 永续合约，排除小币种
-    _monAllTickers = data
-      .filter(t => t.symbol.endsWith('USDT') && parseFloat(t.quoteVolume) > 10000000)
+    if (!Array.isArray(rawData)) throw new Error('invalid ticker data');
+
+    // 过滤：USDT永续合约，成交量>500万USDT，排除非主流后缀
+    _monAllTickers = rawData
+      .filter(t => {
+        if (!t.symbol.endsWith('USDT')) return false;
+        if (t.symbol.includes('_')) return false; // 排除交割合约
+        const vol = parseFloat(t.quoteVolume);
+        return vol > 5000000; // 成交量>500万USDT
+      })
       .map(t => ({
         symbol: t.symbol.replace('USDT', ''),
         price:  parseFloat(t.lastPrice),
@@ -46,7 +55,8 @@ async function monLoadPriceAlerts() {
         volume: parseFloat(t.quoteVolume),
         high:   parseFloat(t.highPrice),
         low:    parseFloat(t.lowPrice),
-      }));
+      }))
+      .sort((a,b) => b.volume - a.volume);
 
     const badge = document.getElementById('monPriceBadge');
     if (badge) { badge.textContent = _monAllTickers.length + ' 个币种'; badge.className = 'panel-badge badge-amber'; }
@@ -302,40 +312,51 @@ function monCalcHorseSignals() {
   const sorted = [..._monAllTickers].sort((a,b) => b.volume - a.volume);
   const medianVol = sorted[Math.floor(sorted.length / 2)].volume;
 
+  // 计算中位数成交量（用于判断放量）
+  const sortedByVol = [..._monAllTickers].sort((a,b) => b.volume - a.volume);
+  // 取前50名的中位数作为基准，更准确
+  const top50 = sortedByVol.slice(0, 50);
+  const baseVol = top50[Math.floor(top50.length / 2)].volume;
+
   const scores = _monAllTickers.map(t => {
     let score = 0;
     const signals = [];
 
-    // 1. 价格涨幅 (权重高)
-    if (t.change > 10)      { score += 4; signals.push('🚀涨幅' + t.change.toFixed(1) + '%'); }
+    // 1. 价格涨幅（只算正向黑马）
+    if (t.change > 15)      { score += 5; signals.push('🚀飙升' + t.change.toFixed(1) + '%'); }
+    else if (t.change > 10) { score += 4; signals.push('🚀涨幅' + t.change.toFixed(1) + '%'); }
     else if (t.change > 5)  { score += 2; signals.push('📈涨幅' + t.change.toFixed(1) + '%'); }
     else if (t.change > 3)  { score += 1; signals.push('↑涨幅' + t.change.toFixed(1) + '%'); }
-    else if (t.change < -10){ score += 2; signals.push('💥跌幅' + t.change.toFixed(1) + '%'); }
+    else if (t.change <= 0) { score -= 3; } // 下跌的不算黑马
 
-    // 2. 成交量放大
-    const volRatio = t.volume / medianVol;
-    if (volRatio > 10)      { score += 4; signals.push('🔥量能' + volRatio.toFixed(0) + 'x'); }
-    else if (volRatio > 5)  { score += 3; signals.push('📊量能' + volRatio.toFixed(0) + 'x'); }
-    else if (volRatio > 3)  { score += 2; signals.push('量能' + volRatio.toFixed(1) + 'x'); }
-    else if (volRatio > 2)  { score += 1; }
+    // 2. 成交量相对于同量级币种的放大倍数
+    const volRatio = t.volume / baseVol;
+    if (volRatio > 5)       { score += 4; signals.push('🔥爆量' + volRatio.toFixed(1) + 'x'); }
+    else if (volRatio > 3)  { score += 3; signals.push('📊放量' + volRatio.toFixed(1) + 'x'); }
+    else if (volRatio > 2)  { score += 2; signals.push('量能' + volRatio.toFixed(1) + 'x'); }
+    else if (volRatio > 1.5){ score += 1; }
 
-    // 3. 排除大币种（BTC ETH BNB 不算黑马）
-    const majorCoins = ['BTC','ETH','BNB','XRP','ADA','SOL'];
-    if (majorCoins.includes(t.symbol)) score -= 2;
+    // 3. 排除超大币种（非黑马）
+    const majorCoins = ['BTC','ETH','BNB','XRP','SOL','USDC','BUSD'];
+    if (majorCoins.includes(t.symbol)) score -= 5;
 
-    // 4. 涨幅+量能共振加分
-    if (t.change > 5 && volRatio > 3) { score += 3; signals.push('⚡共振'); }
+    // 4. 涨幅+量能共振（最强信号）
+    if (t.change > 5 && volRatio > 2) { score += 3; signals.push('⚡价量共振'); }
 
-    // 5. 价格在当日高点附近（突破）
-    const highPct = (t.price - t.low) / (t.high - t.low || 1) * 100;
-    if (highPct > 90) { score += 1; signals.push('近日高点'); }
+    // 5. 价格接近当日高点（突破形态）
+    const range = t.high - t.low;
+    if (range > 0) {
+      const highPct = (t.price - t.low) / range * 100;
+      if (highPct > 95) { score += 2; signals.push('突破高点'); }
+      else if (highPct > 85) { score += 1; signals.push('近高点'); }
+    }
 
     return { ...t, score, signals, volRatio };
   });
 
-  // 取综合评分最高的10个
+  // 只取评分>=4且上涨的币种
   const horses = scores
-    .filter(t => t.score >= 3 && t.change > 0)
+    .filter(t => t.score >= 4 && t.change > 0)
     .sort((a,b) => b.score - a.score)
     .slice(0, 10);
 

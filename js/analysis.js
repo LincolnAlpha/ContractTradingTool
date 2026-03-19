@@ -75,7 +75,7 @@ function setElClass(id, val) { const el = document.getElementById(id); if(el) el
 
 async function loadAll(silent=false) {
   const symbol = document.getElementById('symbolSelect').value;
-  // input 표시 동기화
+  // input
   const _base = symbol.replace('USDT','');
   const _inp = document.getElementById('symbolInput');
   if (_inp && !window._symbolDropdownOpen) _inp.value = _base + '/USDT';
@@ -225,10 +225,9 @@ async function loadAll(silent=false) {
     // Done
     const tickerVal = ticker.status === 'fulfilled' ? ticker.value : null;
 
-    // CoinGecko는 백그라운드에서 비동기 로드 (메인 렌더링 블록 안 함)
+    // CoinGecko
     const cgCommData = null;
     const trendingData = null;
-    // 백그라운드 로드 (완료 여부와 무관하게 메인 렌더링 진행)
     Promise.allSettled([
       getCGCommunity(symbol.replace('USDT','')),
       getTrendingCoins(),
@@ -268,7 +267,6 @@ function storeAnalysisData(data) {
 }
 
 async function loadMonitor() {
-  // 30초 쿨다운 - 탭 전환 시 중복 요청 방지
   const now = Date.now();
   if (now - _monitorLastLoad < 30000) return;
   _monitorLastLoad = now;

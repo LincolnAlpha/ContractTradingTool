@@ -123,7 +123,7 @@ function initCollapse() {
       header.appendChild(arrow);
     }
 
-    // header의 부모 .panel 안에서 .panel-body 찾기
+    // header
     const panel = header.closest('.panel');
     const panelBody = panel ? panel.querySelector('.panel-body') : null;
     if (!panelBody) return;
@@ -135,7 +135,6 @@ function initCollapse() {
     }
 
     header.addEventListener('click', (e) => {
-      // 버튼 클릭은 무시
       if (e.target.closest('button') || e.target.closest('select')) return;
       const isCollapsed = header.classList.toggle('collapsed');
       panelBody.classList.toggle('collapsed', isCollapsed);
@@ -144,10 +143,8 @@ function initCollapse() {
 }
 
 
-// ── 앱 초기화 ─────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   initTheme();
-  // 먼저 analysis 페이지 로딩 후 초기화
   loadPageContent('analysis').then(() => {
     initCollapse();
     setTimeout(loadSymbolList, 100);
@@ -156,7 +153,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('intervalSelect').addEventListener('change', loadAll);
 
-  // 60초 자동 갱신
   setInterval(() => {
     const dot = document.getElementById('statusDot');
     if (dot && dot.classList.contains('live')) loadAll(true);

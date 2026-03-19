@@ -18,7 +18,6 @@ async function loadSymbolList() {
         return a.base.localeCompare(b.base);
       });
   } catch(e) {
-    // 실패 시 기본 목록 사용
     window._allSymbols = ['BTC','ETH','BNB','SOL','XRP','DOGE','ADA','AVAX','LINK','DOT','LTC','MATIC','NEAR','ARB','OP']
       .map(b => ({ symbol: b+'USDT', base: b }));
   }
@@ -44,7 +43,7 @@ function renderSymbolDropdown(items) {
 function openSymbolDropdown() {
   const inp = document.getElementById('symbolInput');
   if (!inp) return;
-  // dropdown을 body로 이동시켜 header stacking context 탈출
+  // dropdown
   let dd = document.getElementById('symbolDropdown');
   if (dd && dd.parentElement !== document.body) {
     document.body.appendChild(dd);
@@ -75,7 +74,6 @@ function filterSymbols(val) {
 }
 
 function selectSymbol(symbol, base) {
-  // 유효한 심볼인지 체크
   if (!symbol || symbol.trim() === '') return;
   document.getElementById('symbolSelect').value = symbol;
   const inp = document.getElementById('symbolInput');
@@ -159,7 +157,6 @@ async function getOrderBook(symbol, limit=20) {
 }
 
 async function getCGCommunity(coin) {
-  // 중문 또는 특수문자 코인은 CoinGecko 스킵
   if (!coin || !/^[a-zA-Z0-9]+$/.test(coin)) return null;
   const cacheKey = 'cg_' + coin;
   const cached = _cgCache[cacheKey];
@@ -265,7 +262,6 @@ async function getNewsForSentiment(coin = 'BTC') {
     ]);
     const cvItems    = cv.status === 'fulfilled' && cv.value?.results ? cv.value.results : [];
     const panicItems = panic.status === 'fulfilled' && panic.value?.results ? panic.value.results : [];
-    // 통합 포맷으로 변환
     const normalize = (items, source) => items.map(item => ({
       title: item.title || item.headline || '',
       published_at: item.published_at || item.publishedAt || item.date || '',

@@ -196,7 +196,6 @@ function updateMiniChart(closes) {
 function renderFearGreed(value, text) {
   const num = parseInt(value);
 
-  // 색상
   let color = 'var(--red)';
   if (num > 75)      color = 'var(--green)';
   else if (num > 55) color = '#8bc34a';
@@ -210,15 +209,12 @@ function renderFearGreed(value, text) {
     arcPath.setAttribute('stroke', color);
   }
 
-  // 숫자
   const fgNum = document.getElementById('fgNum');
   if (fgNum) { fgNum.textContent = num; fgNum.style.color = color; }
 
-  // 레이블 (fgValue = fg-label)
   const fgValue = document.getElementById('fgValue');
   if (fgValue) { fgValue.textContent = text; fgValue.style.color = color; }
 
-  // 설명
   const fgDesc = document.getElementById('fgDesc');
   if (fgDesc) {
     const descMap = [
@@ -237,7 +233,6 @@ function renderFearGreed(value, text) {
   const fgBadge = document.getElementById('fgBadge');
   if (fgBadge) { fgBadge.textContent = text; fgBadge.className = 'panel-badge ' + cls; }
 
-  // 당前指数 카드
   const fgCurrent = document.getElementById('fgCurrent');
   if (fgCurrent) { fgCurrent.textContent = num; fgCurrent.style.color = color; }
 
@@ -290,7 +285,6 @@ function renderFearGreed(value, text) {
     }).join('');
   }
 
-  // fgChangeBadge 숨기기 (불필요)
   const changeBadge = document.getElementById('fgChangeBadge');
   if (changeBadge) changeBadge.style.display = 'none';
 
@@ -1894,7 +1888,6 @@ function renderLivePage() {
       return `<span class="streamer-tag ${cls}">#${t}</span>`;
     }).join('');
 
-    // Real link from 110btc or bmwweb.blue
     const linkHref = s.link || `https://www.binance.com/zh-CN/square/audio`;
     const cardClick = s.link ? `onclick="window.open('${linkHref}','_blank')" style="cursor:pointer;"` : '';
 
@@ -2246,7 +2239,6 @@ function renderNewsSentiment(news, coin) {
     return;
   }
 
-  // 감성 분석
   const bullKw = ['surge','rally','bull','breakout','soar','gain','high','up','rise','positive','adopt','approve','launch','partnership','buy','long','green','support','growth','record'];
   const bearKw = ['crash','dump','bear','drop','fall','low','down','decline','negative','ban','hack','scam','sell','short','red','risk','fear','loss','liquidat','warning'];
 

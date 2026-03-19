@@ -757,7 +757,7 @@ function analyzeAll(klines) {
     indicators.wyckoff = { ...signalMeta(wyckoff.type, wyckoff.phase, wyckoff.desc), bar: wyckoff.type==='bull'?72:wyckoff.type==='bear'?28:50, group:'structure' };
   } catch(e) {}
 
-  // 唐奇安通道（覆盖旧版本，group改为structure）
+  // 唐奇安通道
   try {
     const donc = calcDonchian(highs, lows);
     const don = donc[last];

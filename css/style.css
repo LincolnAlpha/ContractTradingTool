@@ -119,8 +119,7 @@ body::after {
 /* ── 毛玻璃混合类 ─────────────────────────────────────────────────────────── */
 .glass {
   background:var(--bg1);
-  -webkit-
-  border:1px solid var(--glass-border);
+  border:1px solid var(--border2);
 }
 
 /* ── 顶部导航栏 ───────────────────────────────────────────────────────────── */
@@ -131,7 +130,6 @@ body::after {
   padding:0 24px;
   height:60px;
   background:var(--bg1);
-  -webkit-
   border-bottom:1px solid var(--glass-border);
   position:sticky; top:0;
   z-index:500;
@@ -333,8 +331,7 @@ select:focus { border-color:var(--gold); box-shadow:0 0 0 2px var(--gold-dim); }
   gap:28px;
   align-items:center;
   background:var(--bg1);
-  -webkit-
-  border:1px solid var(--glass-border);
+  border:1px solid var(--border2);
   border-left:3px solid var(--gold);
   border-radius:var(--r-xl);
   padding:22px 28px;
@@ -377,8 +374,7 @@ select:focus { border-color:var(--gold); box-shadow:0 0 0 2px var(--gold-dim); }
 /* ── 综合评分 ─────────────────────────────────────────────────────────────── */
 .score-section {
   background:var(--bg1);
-  -webkit-
-  border:1px solid var(--glass-border);
+  border:1px solid var(--border2);
   border-radius:var(--r-xl);
   padding:22px 28px;
   box-shadow:var(--shadow);
@@ -697,8 +693,8 @@ select:focus { border-color:var(--gold); box-shadow:0 0 0 2px var(--gold-dim); }
 /* 直播 */
 .streamer-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; }
 .streamer-card {
-  background:var(--bg1); border:1px solid var(--glass-border);
-  border-radius:var(--r-lg); padding:16px 18px; -webkit-
+  background:var(--bg1); border:1px solid var(--border2);
+  border-radius:var(--r-lg); padding:16px 18px;
   transition:border-color 0.15s; position:relative; overflow:hidden;
 }
 .streamer-card:hover { border-color:var(--gold); transform:translateY(-2px); box-shadow:var(--shadow-gold); }
@@ -716,7 +712,6 @@ select:focus { border-color:var(--gold); box-shadow:0 0 0 2px var(--gold-dim); }
   bottom:0; left:0; right:0;
   z-index:9999;
   background:var(--bg1);
-  -webkit-
   border-top:1px solid var(--glass-border);
   padding:6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
 }
@@ -814,12 +809,24 @@ select:focus { border-color:var(--gold); box-shadow:0 0 0 2px var(--gold-dim); }
   /* fg */
   .fg-row { flex-direction:column; align-items:flex-start; gap:14px; }
   .fg-card-grid { grid-template-columns:repeat(2,1fr) !important; }
+
+
+  /* merged */
+  #briefModal {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+.ev-hist-row { grid-template-columns:auto 1fr auto; gap:6px; }
+  .ev-hist-time, .ev-hist-entry { display:none; }
 }
 
-@media(max-width:360px) {
+@media(max-width:380px) {
+  .mobile-tab-label { font-size:8px; letter-spacing:0; }
+  .mobile-tab-icon  { font-size:18px; }
+  .mobile-tab { padding:4px 1px; gap:2px; }
+}
+@media(max-width:320px) {
   .mobile-tab-label { display:none; }
-  .mobile-tab-icon  { font-size:22px; }
-  .mobile-tab { padding:8px 2px; }
+  .mobile-tab { padding:6px 2px; }
 }
 
 /* FG 카드 그리드 - 모바일 대응 */
@@ -833,11 +840,7 @@ select:focus { border-color:var(--gold); box-shadow:0 0 0 2px var(--gold-dim); }
 }
 
 /* 移动端弹窗底部留出 Tab Bar 空间 */
-@media(max-width:768px) {
-  #briefModal {
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
-  }
-}
+
 
 /* ── 事件合约页面 ─────────────────────────────────────────────────────────── */
 .ev-coin-btn {
@@ -945,10 +948,7 @@ select:focus { border-color:var(--gold); box-shadow:0 0 0 2px var(--gold-dim); }
 }
 .ev-hist-row:last-child { border-bottom:none; }
 
-@media(max-width:768px) {
-  .ev-hist-row { grid-template-columns:auto 1fr auto; gap:6px; }
-  .ev-hist-time, .ev-hist-entry { display:none; }
-}
+
 
 /* ── 计算器页面 ───────────────────────────────────────────────────────────── */
 .calc-label {

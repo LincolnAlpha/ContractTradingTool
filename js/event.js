@@ -37,7 +37,6 @@ function evGetHistory() {
 }
 
 function evSaveHistory(hist) {
-  // 최대 50개
   localStorage.setItem('ev_history', JSON.stringify(hist.slice(0, 50)));
 }
 

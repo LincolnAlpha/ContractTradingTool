@@ -528,7 +528,7 @@ function calcOpenDropdown() {
   const dd  = document.getElementById('calcSymbolDropdown');
   if (!inp || !dd) return;
 
-  // allSymbols 가져오기
+  // allSymbols
   const symbols = window._allSymbols || [];
   if (symbols.length === 0) {
     dd.innerHTML = '<div style="padding:10px;color:var(--text-muted);font-size:12px;">加载中...</div>';
