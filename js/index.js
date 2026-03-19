@@ -2,7 +2,6 @@ const express = require('express');
 const app = express();
 const PORT = 3000;
 
-// CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -17,7 +16,6 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 
-// 路由
 app.use('/api', require('./routes/market'));
 app.use('/api', require('./routes/futures'));
 app.use('/api', require('./routes/sentiment'));

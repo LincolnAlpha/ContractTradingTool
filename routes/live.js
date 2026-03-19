@@ -6,7 +6,7 @@ const { cGet, cSet } = require('../services/cache');
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36';
 
 async function getLiveData() {
-  const pageRes = await fetch('https://567btc.com/all', {
+  const pageRes = await fetch('', {
     headers: { 'User-Agent': UA, 'Accept': 'text/html' }
   });
   const html = await pageRes.text();
@@ -14,13 +14,13 @@ async function getLiveData() {
   if (!m) throw new Error('token not found');
   const token = m[1];
 
-  const r = await fetch(`https://567btc.com/api/live/live_list?token=${token}&type=all`, {
+  const r = await fetch(``, {
     headers: {
       'User-Agent': UA,
-      'Referer': 'https://567btc.com/all',
+      'Referer': '',
       'Accept': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
-      'Origin': 'https://567btc.com'
+      'Origin': ''
     }
   });
   const data = await r.json();

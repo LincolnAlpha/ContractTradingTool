@@ -1,5 +1,4 @@
 
-// 消息面综合判断（基于多维数据）
 function calcNewsSentiment(indicators, fgData, fundingData, lsData) {
   const labelEl = document.getElementById('newsSentLabel');
   const descEl  = document.getElementById('newsSentDesc');
@@ -8,7 +7,6 @@ function calcNewsSentiment(indicators, fgData, fundingData, lsData) {
   let score = 0;
   const reasons = [];
 
-  // 1. 恐惧贪婪指数
   if (fgData?.status === 'fulfilled' && fgData.value) {
     const fg = parseInt(fgData.value.value);
     if (fg >= 70)      { score += 2; reasons.push(`贪婪指数${fg}(极度贪婪)`); }
@@ -17,21 +15,18 @@ function calcNewsSentiment(indicators, fgData, fundingData, lsData) {
     else if (fg <= 40) { score -= 1; reasons.push(`恐惧指数${fg}(偏悲观)`); }
   }
 
-  // 2. 资金费率
   if (fundingData?.status === 'fulfilled' && fundingData.value) {
     const fr = parseFloat(fundingData.value[0]?.fundingRate || 0) * 100;
     if (fr > 0.05)       { score += 1; reasons.push(`资金费率+${fr.toFixed(3)}%(多头积极)`); }
     else if (fr < -0.02) { score -= 1; reasons.push(`资金费率${fr.toFixed(3)}%(空头主导)`); }
   }
 
-  // 3. 多空比
   if (lsData?.status === 'fulfilled' && lsData.value) {
     const ls = parseFloat(lsData.value.longShortRatio || lsData.value[0]?.longShortRatio || 1);
     if (ls > 1.3)      { score += 1; reasons.push(`多空比${ls.toFixed(2)}(多头占优)`); }
     else if (ls < 0.8) { score -= 1; reasons.push(`多空比${ls.toFixed(2)}(空头占优)`); }
   }
 
-  // 4. 技术指标综合
   if (indicators) {
     const vals = Object.values(indicators);
     const bulls = vals.filter(v => v.type === 'bull').length;
@@ -44,7 +39,6 @@ function calcNewsSentiment(indicators, fgData, fundingData, lsData) {
     else if (techScore < -0.1) { score -= 1; reasons.push(`技术面略空`); }
   }
 
-  // 综合结论
   let label, color, desc;
   if (score >= 4)       { label = '强烈利多'; color = 'var(--green)'; }
   else if (score >= 2)  { label = '偏多';     color = 'var(--green)'; }
@@ -62,9 +56,6 @@ function calcNewsSentiment(indicators, fgData, fundingData, lsData) {
   descEl.textContent  = desc;
 }
 
-// ── analysis ──────────────────────────────────────────────────────────────────
-
-// DOM 安全赋值辅助函数
 function setEl(id, val, prop='textContent') {
   const el = document.getElementById(id);
   if (el) el[prop] = val;
@@ -75,7 +66,6 @@ function setElClass(id, val) { const el = document.getElementById(id); if(el) el
 
 async function loadAll(silent=false) {
   const symbol = document.getElementById('symbolSelect').value;
-  // input
   const _base = symbol.replace('USDT','');
   const _inp = document.getElementById('symbolInput');
   if (_inp && !window._symbolDropdownOpen) _inp.value = _base + '/USDT';
@@ -89,7 +79,6 @@ async function loadAll(silent=false) {
   if (!silent) document.getElementById('loadingOverlay').classList.remove('hidden');
 
   try {
-    // Parallel fetch
     document.getElementById('loaderText').textContent = '并行获取市场数据...';
     const coin = symbol.replace('USDT','').replace('BUSD','');
     const [klines, ticker, fundingData, oiData, lsData, fgData, forceOrdersData, depthData] = await Promise.allSettled([
@@ -105,7 +94,6 @@ async function loadAll(silent=false) {
 
     document.getElementById('loaderText').textContent = '计算技术指标...';
 
-    // Klines
     if (klines.status === 'rejected') {
       showError('K线数据获取失败，请点击刷新重试');
       setStatus('error');
@@ -118,7 +106,6 @@ async function loadAll(silent=false) {
     }
     const klinesData = klines.value;
 
-    // Ticker
     if (ticker.status === 'fulfilled') {
       const t = ticker.value;
       const change = parseFloat(t.priceChangePercent);
@@ -134,14 +121,11 @@ async function loadAll(silent=false) {
       document.getElementById('stat24v').textContent = '$' + fmt(parseFloat(t.quoteVolume));
     }
 
-    // Indicators
     document.getElementById('loaderText').textContent = '生成信号分析...';
     const { indicators, closes, highs, lows, volumes, fib, vegas, elliott } = analyzeAll(klinesData);
 
-    // Mini chart
     updateMiniChart(closes.slice(-60));
 
-    // Render indicator groups
     renderGroup('trendList', 'trendBadge', indicators, 'trend', nameMap);
     renderGroup('momentumList', 'momentumBadge', indicators, 'momentum', nameMap);
     renderGroup('volumeList', 'volumeBadge', indicators, 'volume', nameMap);
@@ -150,12 +134,10 @@ async function loadAll(silent=false) {
     renderGroup('maSysList', 'maSysBadge', indicators, 'masys', nameMap);
     renderGroup('structureList', 'structureBadge', indicators, 'structure', nameMap);
 
-    // Trading systems
     renderFibonacci(fib);
     renderVegas(vegas, indicators);
     renderElliott(elliott);
 
-    // Liquidation & Liquidity
     document.getElementById('loaderText').textContent = '分析清算与流动性...';
     const forceOrders = forceOrdersData.status === 'fulfilled' ? forceOrdersData.value : null;
     renderLiquidation(forceOrders, klinesData);
@@ -163,16 +145,13 @@ async function loadAll(silent=false) {
     const currentPrice = parseFloat(klinesData[klinesData.length-1][4]);
     renderOrderBook(depth, currentPrice);
 
-    // Volume analysis
     document.getElementById('loaderText').textContent = '分析量能与量价...';
     renderVolumeProfile(klinesData);
     renderVolumeDelta(klinesData);
     renderVolumePrice(klinesData);
 
-    // Score
     renderScore(indicators);
 
-    // Funding Rate
     let frValue = null;
     if (fundingData.status === 'fulfilled' && fundingData.value?.length) {
       const fr = parseFloat(fundingData.value[0].fundingRate) * 100;
@@ -185,7 +164,6 @@ async function loadAll(silent=false) {
       document.getElementById('fundingNote').textContent = '现货交易对';
     }
 
-    // Open Interest
     if (oiData.status === 'fulfilled' && oiData.value?.openInterest) {
       const oi = parseFloat(oiData.value.openInterest);
       document.getElementById('openInterest').textContent = fmt(oi);
@@ -194,7 +172,6 @@ async function loadAll(silent=false) {
       document.getElementById('openInterest').textContent = 'N/A';
     }
 
-    // LS Ratio
     let lsRatio = null;
     if (lsData.status === 'fulfilled' && lsData.value?.length) {
       const ls = lsData.value[0];
@@ -207,8 +184,6 @@ async function loadAll(silent=false) {
       document.getElementById('lsLong').textContent = '--';
       document.getElementById('lsShort').textContent = '--';
     }
-
-    // Fear & Greed
     let fgVal = null;
     if (fgData.status === 'fulfilled' && fgData.value?.data?.[0]) {
       const fg = fgData.value.data[0];
@@ -219,13 +194,10 @@ async function loadAll(silent=false) {
       document.getElementById('fgValue').textContent = '--';
     }
 
-    // Sentiment
     renderSentimentTags(indicators, frValue, fgVal, lsRatio);
 
-    // Done
     const tickerVal = ticker.status === 'fulfilled' ? ticker.value : null;
 
-    // CoinGecko
     const cgCommData = null;
     const trendingData = null;
     Promise.allSettled([
@@ -233,10 +205,8 @@ async function loadAll(silent=false) {
       getTrendingCoins(),
     ]).catch(() => {});
 
-    // Stat placeholder market cap
     document.getElementById('statMC').textContent = '实时数据';
 
-    // Store for event page
     storeAnalysisData({
       indicators, closes, highs, lows, volumes,
       price: parseFloat(klinesData[klinesData.length-1][4]),
@@ -245,7 +215,6 @@ async function loadAll(silent=false) {
       fgVal, frValue, lsRatio
     });
 
-    // Done
     const now = new Date();
     document.getElementById('lastUpdate').textContent = `更新于 ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
     setStatus('live');
@@ -273,13 +242,12 @@ async function loadMonitor() {
 
   const dot = document.getElementById('monitorDot');
   if (dot) { dot.className = 'status-dot loading'; }
-  if (!dot) return; // monitor page not loaded
+  if (!dot) return;
 
   const symbol = document.getElementById('symbolSelect')?.value || 'BTCUSDT';
   const coin   = symbol.replace('USDT','');
 
   try {
-    // Parallel fetch — Binance + CoinGecko + GeckoTerminal
     const [frHistory, oiHistory, klines24h, ticker, cgData, onchainData, trendData, globalData] = await Promise.allSettled([
       fetchTimeout(`${API}/api/proxy?u=${encodeURIComponent(`https://fapi.binance.com/fapi/v1/fundingRate?symbol=${symbol}&limit=24`)}`, 10000).then(r=>r.ok?r.json():null).catch(()=>null),
       fetchTimeout(`${API}/api/proxy?u=${encodeURIComponent(`https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=24`)}`, 10000).then(r=>r.ok?r.json():null).catch(()=>null),
@@ -300,7 +268,6 @@ async function loadMonitor() {
     const trending    = trendData.status === 'fulfilled' ? trendData.value : null;
     const globalInfo  = globalData.status === 'fulfilled' ? globalData.value : null;
 
-    // Render all monitor panels with enriched data
     renderWhaleMonitor(coin, klinesData, tickerData, cgInfo, onchain);
     renderSmartMoney(coin, klinesData, tickerData, cgInfo);
     renderOnChainAnomalies(coin, klinesData, tickerData, onchain, trending, globalInfo);
@@ -309,7 +276,6 @@ async function loadMonitor() {
     renderOIHistory(oiData, coin);
     renderRiskAlerts(coin, klinesData, tickerData, frData);
 
-    // Summary counts
     const totalAlerts = 6 + Math.floor(Math.random()*4);
     document.getElementById('monitorAlertCount').textContent = totalAlerts + ' 个异动';
     document.getElementById('monWhaleCount').textContent  = Math.floor(totalAlerts*0.35) + '个';
@@ -333,12 +299,10 @@ function setEventCoin(coin, btn) {
   _eventCoin = coin;
   document.querySelectorAll('.event-coin-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  // Load analysis for this coin on event page
   const symSelect = document.getElementById('symbolSelect');
   const targetSym = coin + 'USDT';
   if (symSelect && symSelect.value !== targetSym) {
     symSelect.value = targetSym;
-    // Reload full analysis silently
     loadAll(true);
   } else if (_lastAnalysisData) {
     renderEventPage(_lastAnalysisData);
@@ -361,7 +325,6 @@ function fetchWithTimeout(url, ms = 6000) {
 }
 
 async function fetchLiveData() {
-  // 直播数据源暂未接入
   return null;
 }
 
@@ -429,7 +392,6 @@ function renderLiveStats(data) {
   const onlineBadge = document.getElementById('liveOnlineBadge');
   if (onlineBadge) onlineBadge.textContent = (data.liveNum || 0) + ' 人直播中';
 
-  // 方向分布分析
   const list = data.list || [];
   let longCount = 0, shortCount = 0, neutralCount = 0;
   const longKw  = ['多','看多','做多','买入','涨','long','bull','up'];
@@ -482,7 +444,6 @@ function renderLiveStreamers(list) {
     return;
   }
 
-  // 按在线人数排序
   list.sort((a, b) => parseInt(b.live_online_count || 0) - parseInt(a.live_online_count || 0));
 
   const longKw  = ['多','看多','做多','买入','涨','long','bull'];
@@ -496,7 +457,6 @@ function renderLiveStreamers(list) {
     const liveUrl  = item.live_url || '';
     const followers = fmt(item.totalFollowerCount || 0);
 
-    // 方向判断
     const t = title.toLowerCase();
     const isLong  = longKw.some(k => t.includes(k));
     const isShort = shortKw.some(k => t.includes(k));

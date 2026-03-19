@@ -1,7 +1,6 @@
 <div class="error-banner" id="errorBanner"></div>
 <div class="main">
 
-  <!-- ① 价格模块 -->
   <div class="price-hero" id="priceHero">
     <div class="price-main">
       <div class="price-symbol" id="priceSymbol">BTC/USDT</div>
@@ -26,7 +25,6 @@
     </svg>
   </div>
 
-  <!-- ② 综合评分 -->
   <div class="score-section">
     <div class="score-header">
       <div style="font-size:12px;color:var(--text-muted);font-family:var(--mono);letter-spacing:1px;white-space:nowrap;">综合评分</div>
@@ -59,10 +57,8 @@
     </div>
   </div>
 
-  <!-- ③ 市场情绪 -->
   <div class="section-label">市场情绪</div>
   <div class="grid-2">
-    <!-- 市场信号摘要 -->
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">市场信号摘要</div>
@@ -74,7 +70,6 @@
         <div id="tradingAdvice" style="font-size:13px;color:var(--text-dim);line-height:1.8;"></div>
       </div>
     </div>
-    <!-- 恐惧贪婪 -->
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">恐惧 / 贪婪指数</div>
@@ -83,13 +78,11 @@
       </div>
       <div class="panel-body">
         <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:4px;">
-          <!-- 弧形+数字叠加 -->
           <div style="flex-shrink:0;position:relative;width:140px;height:90px;">
             <svg viewBox="0 0 160 100" width="140" height="88" style="position:absolute;top:0;left:0;">
               <path d="M 12 88 A 72 72 0 0 1 148 88" fill="none" stroke="var(--bg3)" stroke-width="14" stroke-linecap="round"/>
               <path id="fgArcPath" d="M 12 88 A 72 72 0 0 1 148 88" fill="none" stroke="var(--gold)" stroke-width="14" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="226"/>
             </svg>
-            <!-- 数字居中在弧形内 -->
             <div style="position:absolute;bottom:2px;left:0;right:0;text-align:center;">
               <div style="font-family:var(--mono);font-size:32px;font-weight:700;line-height:1;" id="fgNum">--</div>
             </div>
@@ -109,7 +102,6 @@
           <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px;font-family:var(--mono);">近期趋势模拟</div>
           <div style="display:flex;gap:3px;align-items:flex-end;height:32px;" id="fgHistory"></div>
         </div>
-        <!-- 消息面结论 -->
         <div style="margin-top:12px;padding:12px 14px;background:var(--bg2);border-radius:var(--r-lg);display:flex;align-items:center;gap:12px;">
           <div style="flex-shrink:0;">
             <div style="font-size:10px;color:var(--text-muted);font-family:var(--mono);letter-spacing:1px;margin-bottom:4px;">消息面</div>
@@ -121,10 +113,8 @@
     </div>
   </div>
 
-  <!-- ④ 量能 · 流动性 · 清算 -->
   <div class="section-label">量能 · 流动性 · 清算</div>
   <div class="grid-2">
-    <!-- 合约数据 -->
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">合约核心数据</div>
@@ -158,7 +148,6 @@
             <span id="lsLongPctLabel">--</span><span>多空分布</span><span id="lsShortPctLabel">--</span>
           </div>
         </div>
-        <!-- 量能结论 -->
         <div id="vpaConclusion" style="margin-top:12px;font-size:13px;color:var(--text-dim);line-height:1.8;padding:12px 14px;background:var(--bg2);border-radius:var(--r-lg);"></div>
         <div id="vpContainer" style="display:none;"></div>
         <div id="deltaContainer" style="display:none;"></div>
@@ -171,7 +160,6 @@
         <span id="vpaBadge" style="display:none;"></span>
       </div>
     </div>
-    <!-- 流动性 & 清算 -->
     <div class="panel">
       <div class="panel-header" id="liqPanel">
         <div class="panel-title">大额清算</div>
@@ -187,7 +175,6 @@
     </div>
   </div>
 
-  <!-- 订单簿 -->
   <div class="panel">
     <div class="panel-header" id="depthPanel">
       <div class="panel-title">订单簿深度</div>
@@ -208,7 +195,6 @@
     </div>
   </div>
 
-  <!-- ⑤ 技术指标 -->
   <div class="section-label">技术指标</div>
 
   <div class="grid-2">
@@ -263,10 +249,8 @@
     </div>
   </div>
 
-  <!-- ⑥ 交易系统 -->
   <div class="section-label">交易系统</div>
 
-  <!-- 均线系统 -->
   <div class="panel">
     <div class="panel-header" id="maSysPanel">
       <div class="panel-title">均线系统</div>
@@ -278,7 +262,6 @@
   </div>
 
   <div class="grid-2">
-    <!-- 斐波那契 -->
     <div class="panel">
       <div class="panel-header" id="fibPanel">
         <div class="panel-title">斐波那契</div>
@@ -296,7 +279,6 @@
         <div id="fibSignal" style="margin-top:10px;font-size:12px;color:var(--text-dim);line-height:1.7;"></div>
       </div>
     </div>
-    <!-- 维加斯通道 -->
     <div class="panel">
       <div class="panel-header" id="vegasPanel">
         <div class="panel-title">维加斯通道</div>
@@ -308,7 +290,6 @@
     </div>
   </div>
 
-  <!-- 结构交易系统 -->
   <div class="panel">
     <div class="panel-header" id="structurePanel">
       <div class="panel-title">结构交易系统</div>
@@ -319,7 +300,6 @@
     </div>
   </div>
 
-  <!-- 艾略特波浪 -->
   <div class="panel">
     <div class="panel-header" id="elliottPanel">
       <div class="panel-title">艾略特波浪</div>
@@ -331,7 +311,7 @@
   </div>
 
   <div style="height:20px;display:flex;align-items:center;justify-content:center;">
-    <span style="font-size:10px;color:var(--text-muted);font-family:var(--mono);">数据来源：BINANCE API · COINGECKO · 仅供参考，不构成投资建议</span>
+    <span style="font-size:10px;color:var(--text-muted);font-family:var(--mono);">数据来源：*** · 仅供参考，不构成投资建议</span>
   </div>
 
-</div><!-- /main -->
+</div>

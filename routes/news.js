@@ -4,8 +4,8 @@ const { fetch, UA } = require('../services/fetch');
 const { cGet, cSet } = require('../services/cache');
 
 const RSS_SOURCES = [
-  { url: 'https://cointelegraph.com/rss', name: 'CoinTelegraph' },
-  { url: 'https://coindesk.com/arc/outboundfeeds/rss/', name: 'CoinDesk' },
+  { url: '', name: '' },
+  { url: '', name: '' },
 ];
 
 function parseRSS(xml, sourceName) {
@@ -45,7 +45,6 @@ router.get('/news', async (req, res) => {
       )
     );
     let all = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
-    // 币种过滤（宽松）
     const keywords = [coin, coin.toLowerCase(), 'crypto', 'bitcoin', 'btc', 'ethereum', 'eth'];
     const filtered = all.filter(item =>
       keywords.some(k => item.title.toLowerCase().includes(k))

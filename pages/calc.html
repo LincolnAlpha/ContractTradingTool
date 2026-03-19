@@ -1,10 +1,8 @@
 <div class="main">
   <div class="section-label">合约计算器</div>
 
-  <!-- 主体 -->
   <div id="calcMain" style="display:flex;flex-direction:column;gap:16px;">
 
-    <!-- 输入区 -->
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">开仓参数</div>
@@ -13,7 +11,6 @@
       <div class="panel-body">
         <div style="display:flex;flex-direction:column;gap:16px;">
 
-          <!-- 币种 + 方向 -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div>
               <div class="calc-label">币种</div>
@@ -39,7 +36,6 @@
             </div>
           </div>
 
-          <!-- 模式 -->
           <div>
             <div class="calc-label">保证金模式</div>
             <div style="display:flex;gap:6px;">
@@ -48,14 +44,12 @@
             </div>
           </div>
 
-          <!-- 账户余额（全仓时显示） -->
           <div id="calcBalanceRow">
             <div class="calc-label">账户余额 (USDT)</div>
             <input type="number" id="calcBalance" value="1000" min="1" placeholder="账户总余额"
               style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:14px;padding:8px 12px;border-radius:var(--r);outline:none;width:100%;" oninput="calcUpdate()"/>
           </div>
 
-          <!-- 保证金 -->
           <div>
             <div class="calc-label">下单保证金 (USDT)</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -67,7 +61,6 @@
             </div>
           </div>
 
-          <!-- 杠杆 -->
           <div>
             <div class="calc-label" style="display:flex;justify-content:space-between;">
               <span>杠杆倍数</span>
@@ -85,7 +78,6 @@
             </div>
           </div>
 
-          <!-- 开仓价 -->
           <div>
             <div class="calc-label">开仓价格 (USDT)</div>
             <div style="display:flex;gap:8px;">
@@ -99,7 +91,6 @@
       </div>
     </div>
 
-    <!-- 核心结果 -->
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">计算结果</div>
@@ -129,12 +120,10 @@
           </div>
         </div>
 
-        <!-- 风险评级 -->
         <div id="calcRiskBar" style="padding:12px 14px;border-radius:var(--r-lg);background:var(--bg2);font-size:13px;line-height:1.7;"></div>
       </div>
     </div>
 
-    <!-- 止损止盈 -->
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">止损 / 止盈</div>
@@ -145,7 +134,6 @@
       </div>
       <div class="panel-body">
 
-        <!-- 自动模式（基于ATR） -->
         <div id="calcSLAutoArea">
           <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">基于 ATR 动态计算，止损=1.5×ATR，止盈=3×ATR（风险回报比 1:2）</div>
           <div class="futures-grid">
@@ -178,7 +166,6 @@
           </div>
         </div>
 
-        <!-- 手动模式 -->
         <div id="calcSLManualArea" style="display:none;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
             <div>
@@ -217,7 +204,6 @@
       </div>
     </div>
 
-    <!-- 支撑阻力 + 综合建议 -->
     <div class="grid-2">
       <div class="panel">
         <div class="panel-header">

@@ -1,8 +1,6 @@
-// ── api ──────────────────────────────────────────────────────────────────
-
 async function loadSymbolList() {
   try {
-    const r = await fetch(`${API}/api/proxy?u=${encodeURIComponent('https://fapi.binance.com/fapi/v1/exchangeInfo')}`);
+    const r = await fetch(`${API}/api/proxy?u=${encodeURIComponent('')}`);
     if (!r.ok) return;
     const d = await r.json();
     const popular = ['BTC','ETH','BNB','SOL','XRP','DOGE','ADA','AVAX','LINK','DOT','LTC','MATIC','NEAR','ARB','OP'];
@@ -43,7 +41,6 @@ function renderSymbolDropdown(items) {
 function openSymbolDropdown() {
   const inp = document.getElementById('symbolInput');
   if (!inp) return;
-  // dropdown
   let dd = document.getElementById('symbolDropdown');
   if (dd && dd.parentElement !== document.body) {
     document.body.appendChild(dd);
@@ -172,10 +169,10 @@ async function getCGCommunity(coin) {
 
 async function getOnchainTrades(coin) {
   const poolMap = {
-    BTC:  'eth_0xcbcdf9626bc03e24f779434178a73a0b4bad62ed', // WBTC/ETH Uniswap
-    ETH:  'eth_0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8', // ETH/USDC Uniswap
+    BTC:  'eth_0xcbcdf9626bc03e24f779434178a73a0b4bad62ed',
+    ETH:  'eth_0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8',
     SOL:  null,
-    MATIC:'eth_0x99ac8ca7087fa4a2a1fb6357269965a2014adc58', // MATIC/USDC
+    MATIC:'eth_0x99ac8ca7087fa4a2a1fb6357269965a2014adc58',
   };
   const pool = poolMap[coin];
   if (!pool) return null;
@@ -215,7 +212,6 @@ async function getAggTrades(symbol, limit=50) {
 }
 
 async function getBinanceAnnouncements(coin) {
-  // Binance 官网国内不可直连，跳过
   return null;
 }
 
@@ -252,8 +248,6 @@ async function getNewsAlternative() {
   } catch { return null; }
 }
 
-
-// ── 消息面数据 ────────────────────────────────────────────────────────────────
 async function getNewsForSentiment(coin = 'BTC') {
   try {
     const [cv, panic] = await Promise.allSettled([

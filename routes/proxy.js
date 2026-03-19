@@ -3,7 +3,7 @@ const router = express.Router();
 const { fetch, UA } = require('../services/fetch');
 const { cGet, cSet } = require('../services/cache');
 
-const ALLOWED = ['api.binance.com','fapi.binance.com','api.coingecko.com','api.alternative.me','api.geckoterminal.com','cryptopanic.com'];
+const ALLOWED = [''];
 
 router.get('/proxy', async (req, res) => {
   try {

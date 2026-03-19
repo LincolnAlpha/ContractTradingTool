@@ -1,5 +1,3 @@
-// ── render ──────────────────────────────────────────────────────────────────
-
 function makeSignalPill(type) {
   const map = {
     bull: ['signal-pill signal-bull', '▲ 利多'],
@@ -45,7 +43,6 @@ function renderGroup(containerId, badgeId, indicators, group, nameMap) {
 
 function renderFibonacci(fib) {
   const { levels, swingHigh, swingLow, price, pct, nearestBelow, nearestAbove } = fib;
-  // Level cards
   const keyLevels = [['0.0','区间低点'],['23.6','浅回调'],['38.2','黄金回调'],['50.0','中位支撑'],['61.8','黄金分割'],['78.6','深回调'],['100.0','区间高点']];
   const levelsHtml = keyLevels.map(([k, label]) => {
     const val = levels[k];
@@ -61,16 +58,14 @@ function renderFibonacci(fib) {
   }).join('');
   document.getElementById('fibLevels').innerHTML = levelsHtml;
 
-  // Position bar
   const barPct = Math.min(100, Math.max(0, pct));
   document.getElementById('fibBar').style.width = barPct + '%';
   const barColor = pct > 78.6 ? 'var(--red)' : pct < 23.6 ? 'var(--green)' : 'var(--amber)';
   document.getElementById('fibBar').style.background = barColor;
   document.getElementById('fibCurrentLabel').textContent = `当前 ${pct.toFixed(1)}%`;
   document.getElementById('fibCurrentLabel').style.color = barColor;
-  window._lastFibPct = pct; // expose for sentiment summary
+  window._lastFibPct = pct;
 
-  // Signal
   let sigType = 'neutral', sigText = '';
   if (pct < 23.6) { sigType = 'bull'; sigText = `价格处于0%-23.6%区间（强支撑区），接近波段低点，超跌反弹概率高。支撑位：${fmtPrice(levels['23.6'])}`; }
   else if (pct < 38.2) { sigType = 'bull'; sigText = `价格处于23.6%-38.2%区间（浅回调区），属于健康回调，多头防守位置。支撑位：${fmtPrice(levels['38.2'])}`; }
@@ -202,7 +197,6 @@ function renderFearGreed(value, text) {
   else if (num > 45) color = 'var(--gold)';
   else if (num > 25) color = '#ff9800';
 
-  // Arc
   const arcPath = document.getElementById('fgArcPath');
   if (arcPath) {
     arcPath.setAttribute('stroke-dashoffset', 220 - (num / 100 * 220));
@@ -228,7 +222,6 @@ function renderFearGreed(value, text) {
     if (entry) fgDesc.textContent = entry[2];
   }
 
-  // Badge
   const cls = num > 60 ? 'badge-green' : num < 40 ? 'badge-red' : 'badge-amber';
   const fgBadge = document.getElementById('fgBadge');
   if (fgBadge) { fgBadge.textContent = text; fgBadge.className = 'panel-badge ' + cls; }
@@ -236,11 +229,9 @@ function renderFearGreed(value, text) {
   const fgCurrent = document.getElementById('fgCurrent');
   if (fgCurrent) { fgCurrent.textContent = num; fgCurrent.style.color = color; }
 
-  // 市场状态
   const fgStatus = document.getElementById('fgStatus');
   if (fgStatus) { fgStatus.textContent = text; fgStatus.style.color = color; }
 
-  // 交易建议
   const fgAdvice = document.getElementById('fgAdvice');
   if (fgAdvice) {
     const adviceMap = [
@@ -254,7 +245,6 @@ function renderFearGreed(value, text) {
     if (a) { fgAdvice.textContent = a[2]; fgAdvice.style.color = color; }
   }
 
-  // 信号强度
   const fgSignal = document.getElementById('fgSignal');
   if (fgSignal) {
     const filled = Math.round(num / 20);
@@ -263,7 +253,6 @@ function renderFearGreed(value, text) {
     ).join('');
   }
 
-  // 近期趋势 (柱状图)
   const histEl = document.getElementById('fgHistory');
   if (histEl) {
     const hist = [];
@@ -307,8 +296,6 @@ function renderSentimentTags(indicators, fundingRate, fgVal, lsRatio) {
   const bulls = all.filter(v => v.type==='bull').length;
   const bears = all.filter(v => v.type==='bear').length;
 
-  // ── 趋势类 ──────────────────────────────
-  // EMA 综合排列
   if (indicators.ema?.type === 'bull' && indicators.ema200?.type === 'bull')
     tags.push({ text: '均线多头排列', cls: 'badge-green' });
   else if (indicators.ema?.type === 'bear' && indicators.ema200?.type === 'bear')
@@ -318,13 +305,11 @@ function renderSentimentTags(indicators, fundingRate, fgVal, lsRatio) {
   else if (indicators.ema?.type === 'bear')
     tags.push({ text: '均线短期偏空', cls: 'badge-red' });
 
-  // EMA200
   if (indicators.ema200?.type === 'bull')
     tags.push({ text: 'EMA200多头支撑', cls: 'badge-green' });
   else if (indicators.ema200?.type === 'bear')
     tags.push({ text: '跌破EMA200', cls: 'badge-red' });
 
-  // MA System
   if (indicators.maArrange?.type === 'bull')
     tags.push({ text: '五线多头完美排列', cls: 'badge-green' });
   else if (indicators.maArrange?.type === 'bear')
@@ -340,7 +325,6 @@ function renderSentimentTags(indicators, fundingRate, fgVal, lsRatio) {
   else if (indicators.ma510?.type === 'bear')
     tags.push({ text: 'MA5/10短期死叉', cls: 'badge-red' });
 
-  // Ichimoku
   if (indicators.ichimoku?.type === 'bull')
     tags.push({ text: '一目云层上方', cls: 'badge-green' });
   else if (indicators.ichimoku?.type === 'bear')
@@ -348,7 +332,6 @@ function renderSentimentTags(indicators, fundingRate, fgVal, lsRatio) {
   else if (indicators.ichimoku?.type === 'neutral')
     tags.push({ text: '一目云内震荡', cls: 'badge-amber' });
 
-  // ADX
   if (indicators.adx) {
     const adxVal = parseFloat(indicators.adx.value);
     if (adxVal > 30 && indicators.adx.type === 'bull')
@@ -359,12 +342,10 @@ function renderSentimentTags(indicators, fundingRate, fgVal, lsRatio) {
       tags.push({ text: `ADX盘整弱势(${adxVal.toFixed(0)})`, cls: 'badge-amber' });
   }
 
-  // MACD
   if (indicators.macd?.type === 'bull') tags.push({ text: 'MACD金叉', cls: 'badge-green' });
   else if (indicators.macd?.type === 'bear') tags.push({ text: 'MACD死叉', cls: 'badge-red' });
   else tags.push({ text: 'MACD中性', cls: 'badge-amber' });
 
-  // Bollinger Bands
   if (indicators.boll?.type === 'bull')
     tags.push({ text: '布林带下轨支撑', cls: 'badge-green' });
   else if (indicators.boll?.type === 'bear')
@@ -374,7 +355,6 @@ function renderSentimentTags(indicators, fundingRate, fgVal, lsRatio) {
   else if (parseFloat(indicators.bw?.value) > 10)
     tags.push({ text: '布林带极度扩张', cls: 'badge-amber' });
 
-  // Vegas Tunnel
   if (indicators.vegasTrend?.type === 'bull')
     tags.push({ text: '维加斯通道多头', cls: 'badge-green' });
   else if (indicators.vegasTrend?.type === 'bear')
@@ -382,8 +362,6 @@ function renderSentimentTags(indicators, fundingRate, fgVal, lsRatio) {
   else if (indicators.vegasTrend?.type === 'neutral')
     tags.push({ text: '维加斯通道内震荡', cls: 'badge-amber' });
 
-  // ── 动量类 ──────────────────────────────
-  // RSI
   if (indicators.rsi) {
     const rv = parseFloat(indicators.rsi.value);
     if (rv < 30) tags.push({ text: `RSI超卖(${rv.toFixed(0)})`, cls: 'badge-green' });
@@ -392,35 +370,29 @@ function renderSentimentTags(indicators, fundingRate, fgVal, lsRatio) {
     else tags.push({ text: `RSI弱势区(${rv.toFixed(0)})`, cls: 'badge-red' });
   }
 
-  // KDJ
   if (indicators.kdj?.type === 'bull') tags.push({ text: 'KDJ金叉', cls: 'badge-green' });
   else if (indicators.kdj?.type === 'bear') tags.push({ text: 'KDJ死叉', cls: 'badge-red' });
 
-  // StochRSI
   if (indicators.stochrsi?.type === 'bull')
     tags.push({ text: 'StochRSI超卖金叉', cls: 'badge-green' });
   else if (indicators.stochrsi?.type === 'bear')
     tags.push({ text: 'StochRSI超买死叉', cls: 'badge-red' });
 
-  // Williams %R
   if (indicators.williamsr?.type === 'bull')
     tags.push({ text: 'WR超卖区间', cls: 'badge-green' });
   else if (indicators.williamsr?.type === 'bear')
     tags.push({ text: 'WR超买区间', cls: 'badge-red' });
 
-  // CCI
   if (indicators.cci?.type === 'bull')
     tags.push({ text: `CCI超卖(${indicators.cci.value})`, cls: 'badge-green' });
   else if (indicators.cci?.type === 'bear')
     tags.push({ text: `CCI超买(${indicators.cci.value})`, cls: 'badge-red' });
 
-  // ROC
   if (indicators.roc?.type === 'bull')
     tags.push({ text: `ROC正向动能(${indicators.roc.value})`, cls: 'badge-green' });
   else if (indicators.roc?.type === 'bear')
     tags.push({ text: `ROC负向动能(${indicators.roc.value})`, cls: 'badge-red' });
 
-  // ── 成交量类 ────────────────────────────
   if (indicators.volume?.type === 'bull') tags.push({ text: '放量上涨', cls: 'badge-green' });
   else if (indicators.volume?.type === 'bear') tags.push({ text: '放量下跌', cls: 'badge-red' });
 
@@ -442,7 +414,6 @@ function renderSentimentTags(indicators, fundingRate, fgVal, lsRatio) {
   else if (indicators.vwap?.type === 'bear')
     tags.push({ text: 'VWAP下方空头', cls: 'badge-red' });
 
-  // ── 波动率类 ────────────────────────────
   if (indicators.donchian?.type === 'bull')
     tags.push({ text: '唐奇安通道下轨', cls: 'badge-green' });
   else if (indicators.donchian?.type === 'bear')
@@ -454,9 +425,7 @@ function renderSentimentTags(indicators, fundingRate, fgVal, lsRatio) {
     else if (atrVal < 0.8) tags.push({ text: `ATR低波动(${atrVal.toFixed(1)}%)`, cls: 'badge-blue' });
   }
 
-  // ── 交易系统类 ──────────────────────────
-  // Fibonacci
-  if (indicators.vegasTrend) { // fib comes from fib object not indicators, handled below via window
+  if (indicators.vegasTrend) { 
     const fibPct = window._lastFibPct;
     if (fibPct !== undefined) {
       if (fibPct < 38.2)
@@ -468,13 +437,11 @@ function renderSentimentTags(indicators, fundingRate, fgVal, lsRatio) {
     }
   }
 
-  // Vegas EMA12
   if (indicators.vegasEma12?.type === 'bull')
     tags.push({ text: 'EMA12突破维加斯通道', cls: 'badge-green' });
   else if (indicators.vegasEma12?.type === 'bear')
     tags.push({ text: 'EMA12跌破维加斯通道', cls: 'badge-red' });
 
-  // ── 合约市场 ────────────────────────────
   if (fundingRate !== null) {
     const fr = parseFloat(fundingRate) * 100;
     if (fr > 0.1) tags.push({ text: `资金费率偏高 ${fr.toFixed(3)}%`, cls: 'badge-red' });
@@ -489,7 +456,6 @@ function renderSentimentTags(indicators, fundingRate, fgVal, lsRatio) {
     else tags.push({ text: `多空比均衡(${lsRatio.toFixed(2)})`, cls: 'badge-blue' });
   }
 
-  // ── 情绪 ────────────────────────────────
   if (fgVal !== null) {
     const fv = parseInt(fgVal);
     if (fv > 75) tags.push({ text: `极度贪婪(${fv})`, cls: 'badge-red' });
@@ -499,8 +465,6 @@ function renderSentimentTags(indicators, fundingRate, fgVal, lsRatio) {
     else tags.push({ text: `情绪中性(${fv})`, cls: 'badge-blue' });
   }
 
-  // ── 渲染 ────────────────────────────────
-  // Sort: bull first, bear second, neutral last
   const order = { 'badge-green': 0, 'badge-red': 1, 'badge-amber': 2, 'badge-blue': 3 };
   tags.sort((a, b) => (order[a.cls]||3) - (order[b.cls]||3));
 
@@ -509,7 +473,6 @@ function renderSentimentTags(indicators, fundingRate, fgVal, lsRatio) {
   ).join('');
   document.getElementById('sentimentTags').innerHTML = html || '<span style="color:var(--text-muted)">暂无信号</span>';
 
-  // ── 操作建议（更详细版） ─────────────────
   const longScore = bulls / (bulls + bears || 1) * 100;
   const macdSig   = indicators.macd?.type;
   const rsiVal    = indicators.rsi ? parseFloat(indicators.rsi.value) : 50;
@@ -553,7 +516,6 @@ function renderLiquidation(forceOrders, klines) {
   const price   = closes[closes.length - 1];
   const { atr }  = calcATR(highs, lows, closes);
 
-  // ── Liquidation Intensity from force orders ──
   let longLiq = 0, shortLiq = 0;
   const now = Date.now();
   const oneHour = 3600000;
@@ -561,12 +523,10 @@ function renderLiquidation(forceOrders, klines) {
     forceOrders.forEach(o => {
       if (now - o.time > oneHour) return;
       const val = parseFloat(o.origQty) * parseFloat(o.price);
-      // SELL side = long liquidated, BUY side = short liquidated
       if (o.side === 'SELL') longLiq += val;
       else shortLiq += val;
     });
   } else {
-    // Estimate from recent volatility if API unavailable
     const recentVol = volumes.slice(-12).reduce((a,b)=>a+b,0);
     const avgVol = volumes.slice(-50,-12).reduce((a,b)=>a+b,0)/38;
     const volSurge = recentVol / (avgVol * 12);
@@ -610,12 +570,10 @@ function renderLiquidation(forceOrders, klines) {
   badge.textContent = intensity + ' · ' + dominates + '被清';
   badge.className = `panel-badge ${intensity==='EXTREME'?'badge-red':intensity==='HIGH'?'badge-amber':'badge-blue'}`;
 
-  // ── Heatmap ──
   renderHeatmap(price, atr, longPct, shortPct, closes, highs, lows);
 }
 
 function renderHeatmap(price, atr, longPct, shortPct, closes, highs, lows) {
-  // Build 12-level heatmap centered on current price, range = ±3 ATR
   const range = atr * 3;
   const step  = range * 2 / 12;
   const levels = [];
@@ -623,18 +581,12 @@ function renderHeatmap(price, atr, longPct, shortPct, closes, highs, lows) {
     levels.push(price + range - i * step);
   }
 
-  // Estimate liquidation density at each level
-  // Long liq density peaks below current price (leveraged longs get stopped)
-  // Short liq density peaks above current price
   const rows = [];
   for (let i = 0; i < 12; i++) {
     const lvlPrice = (levels[i] + levels[i+1]) / 2;
     const distPct  = (lvlPrice - price) / price * 100;
-    // Distance factor: closer = higher density
     const distFactor = Math.exp(-Math.abs(distPct) / 1.5);
-    // Long liq: concentrated below price
     const longDens  = lvlPrice < price ? distFactor * (longPct / 50)  : distFactor * 0.15;
-    // Short liq: concentrated above price
     const shortDens = lvlPrice > price ? distFactor * (shortPct / 50) : distFactor * 0.15;
     rows.push({ price: lvlPrice, longDens, shortDens, distPct, isCurrent: Math.abs(distPct) < (step/price*100/2) });
   }
@@ -681,7 +633,6 @@ function renderOrderBook(depth, price) {
   const maxBidSize = Math.max(...bids.map(o => o.size));
   const maxAskSize = Math.max(...asks.map(o => o.size));
 
-  // Asks (sells) — shown above spread, red
   const askHtml = asks.map(a => {
     const barW = (a.size / maxAskSize * 100).toFixed(1);
     const val  = a.price * a.size;
@@ -693,7 +644,6 @@ function renderOrderBook(depth, price) {
     </div>`;
   }).join('');
 
-  // Bids (buys) — shown below spread, green
   const bidHtml = bids.map(b => {
     const barW = (b.size / maxBidSize * 100).toFixed(1);
     const isWall = b.size > maxBidSize * 0.5;
@@ -713,7 +663,6 @@ function renderOrderBook(depth, price) {
   const spreadPct = (spread / bestBid * 100).toFixed(4);
   document.getElementById('obSpread').textContent = `${fmtPrice(spread)} (${spreadPct}%)`;
 
-  // Depth within 2%
   const priceLow  = price * 0.98;
   const priceHigh = price * 1.02;
   const bidDepth2 = depth.bids.filter(b => parseFloat(b[0]) >= priceLow)
@@ -730,12 +679,10 @@ function renderOrderBook(depth, price) {
   document.getElementById('depthRatio').style.color = drNum > 1.2 ? 'var(--green)' : drNum < 0.8 ? 'var(--red)' : 'var(--amber)';
   document.getElementById('depthRatioNote').textContent = drNum > 1.2 ? '买盘较强' : drNum < 0.8 ? '卖盘较强' : '供需均衡';
 
-  // Biggest bid wall
   const biggestBid = depth.bids.reduce((m, b) => parseFloat(b[1]) > parseFloat(m[1]) ? b : m, depth.bids[0]);
   document.getElementById('maxBid').textContent = fmt(parseFloat(biggestBid[1]), 2);
   document.getElementById('maxBidPrice').textContent = '$' + fmtPrice(parseFloat(biggestBid[0]));
 
-  // Wall detection
   const walls = [];
   const maxSize = Math.max(maxBidSize, maxAskSize);
   depth.bids.slice(0, 20).forEach(b => { if (parseFloat(b[1]) > maxSize * 0.4) walls.push({ side:'买', price: parseFloat(b[0]), size: parseFloat(b[1]) }); });
@@ -820,7 +767,6 @@ function renderVolumeDelta(klines) {
   const volumes = klines.map(k => parseFloat(k[5]));
   const last = klines.length - 1;
 
-  // Estimate buy/sell volume per candle
   const deltas = klines.map((k, i) => {
     const open = opens[i], close = closes[i], vol = volumes[i];
     const bull = close >= open;
@@ -830,7 +776,6 @@ function renderVolumeDelta(klines) {
     return { buyVol, sellVol, delta: buyVol - sellVol, vol, isBull: bull };
   });
 
-  // Last 5 candles summary
   const last5 = deltas.slice(-5);
   const buyVol5  = last5.reduce((s, d) => s + d.buyVol,  0);
   const sellVol5 = last5.reduce((s, d) => s + d.sellVol, 0);
@@ -840,7 +785,6 @@ function renderVolumeDelta(klines) {
   document.getElementById('volDelta').textContent = (delta5 > 0 ? '+' : '') + fmt(delta5);
   document.getElementById('volDelta').style.color = delta5 > 0 ? 'var(--green)' : 'var(--red)';
 
-  // Volume trend (OBV slope)
   const obvArr = [];
   let obv = 0;
   deltas.forEach(d => { obv += d.delta; obvArr.push(obv); });
@@ -851,7 +795,6 @@ function renderVolumeDelta(klines) {
   else if (obvSlope < -5) { trendEl.textContent = '净流出'; trendEl.style.color = 'var(--red)'; }
   else { trendEl.textContent = '均衡'; trendEl.style.color = 'var(--amber)'; }
 
-  // Delta bars for last 20 candles
   const last20 = deltas.slice(-20);
   const maxVol20 = Math.max(...last20.map(d => d.vol));
   const html = last20.map((d, i) => {
@@ -885,7 +828,6 @@ function renderVolumePrice(klines) {
 
   const indicators = {};
 
-  // ── 1. 量价背离 ──
   const priceUp5   = closes[last] > closes[last-5];
   const volUp5     = volumes[last] > volumes[last-5];
   const priceTrend = closes[last] - closes[last-5];
@@ -898,7 +840,6 @@ function renderVolumePrice(klines) {
   else { divType = 'bear'; divDesc = '价量同步下跌，趋势偏弱'; }
   indicators.vpDiv = { type: divType, value: volRatio.toFixed(2)+'×', desc: divDesc, bar: divType==='bull'?70:divType==='bear'?30:50, group:'vpa' };
 
-  // ── 2. 放量突破 ──
   const highest20 = Math.max(...closes.slice(last-20, last));
   const breakout  = closes[last] > highest20 * 0.995 && volRatio > 1.5;
   const breakdown = closes[last] < Math.min(...closes.slice(last-20,last)) * 1.005 && volRatio > 1.5;
@@ -907,7 +848,6 @@ function renderVolumePrice(klines) {
   else if (breakdown) { boType = 'bear'; boDesc = `放量跌破20日低点，弱势信号`; }
   indicators.volBreak = { type: boType, value: volRatio.toFixed(2)+'×', desc: boDesc, bar: boType==='bull'?78:boType==='bear'?22:volRatio*20, group:'vpa' };
 
-  // ── 3. 量能萎缩/放大 ──
   const recentVols  = volumes.slice(-5);
   const avgVol5     = recentVols.reduce((a,b)=>a+b,0)/5;
   const prevVol5    = volumes.slice(-10,-5).reduce((a,b)=>a+b,0)/5;
@@ -918,7 +858,6 @@ function renderVolumePrice(klines) {
   else { vcDesc = `量能变化 ${volChange.toFixed(0)}%，保持平稳`; }
   indicators.volChange = { type: vcType, value: volChange.toFixed(0)+'%', desc: vcDesc, bar: Math.min(90, Math.max(10, 50+volChange)), group:'vpa' };
 
-  // ── 4. 大单成交 ──
   const bigCandles = klines.slice(-20).filter((k, i) => {
     const vol = parseFloat(k[5]);
     return vol > volSMA20 * 2;
@@ -930,7 +869,6 @@ function renderVolumePrice(klines) {
   else if (bigBear > bigBull && bigCandles.length > 0) { bigType = 'bear'; bigDesc = `${bigBear}根超量阴线，主力抛售信号`; }
   indicators.bigTrade = { type: bigType, value: `${bigCandles.length}根`, desc: bigDesc, bar: bigType==='bull'?72:bigType==='bear'?28:50, group:'vpa' };
 
-  // ── 5. 缩量反弹/下跌 ──
   const last3Vols  = volumes.slice(-3);
   const last3Avg   = last3Vols.reduce((a,b)=>a+b,0)/3;
   const last3Price = closes[last] - closes[last-3];
@@ -942,12 +880,10 @@ function renderVolumePrice(klines) {
   else { shrinkType = 'bear'; shrinkDesc = `放量下跌，抛压较重，空头主导`; }
   indicators.volShrink = { type: shrinkType, value: (last3Avg/volSMA20*100).toFixed(0)+'%', desc: shrinkDesc, bar: shrinkType==='bull'?68:shrinkType==='bear'?32:50, group:'vpa' };
 
-  // Render list
   const nameMapVpa = { vpDiv:'量价背离', volBreak:'放量突破', volChange:'量能变化', bigTrade:'大单信号', volShrink:'缩量分析' };
   const listHtml = Object.entries(indicators).map(([k, v]) => renderIndicatorRow(k, nameMapVpa[k]||k, v)).join('');
   document.getElementById('vpaList').innerHTML = listHtml;
 
-  // Conclusion
   const bulls = Object.values(indicators).filter(v=>v.type==='bull').length;
   const bears = Object.values(indicators).filter(v=>v.type==='bear').length;
   let conclusion = '';
@@ -976,7 +912,6 @@ function classifyNews(title, votes) {
   let bullScore = 0, bearScore = 0;
   bullKw.forEach(k => { if (t.includes(k)) bullScore++; });
   bearKw.forEach(k => { if (t.includes(k)) bearScore++; });
-  // Votes from CryptoPanic
   if (votes) {
     bullScore += (votes.liked    || 0) * 0.5;
     bearScore += (votes.disliked || 0) * 0.5;
@@ -989,7 +924,6 @@ function classifyNews(title, votes) {
 }
 
 function generateSyntheticNews(coin, interval, indicators) {
-  // Build news items derived purely from indicator signals
   const now = new Date().toISOString();
   const items = [];
   const hoursAgo = (h) => new Date(Date.now() - h*3600000).toISOString();
@@ -1035,7 +969,6 @@ function generateSyntheticNews(coin, interval, indicators) {
   else if (obv?.type === 'bear')
     items.push({ title: `${coin} OBV下行背离，资金悄然撤离`, source: 'OBV Monitor', time: hoursAgo(2), sentiment: 'bear', impact: 2 });
 
-  // Always add a timeframe-specific context item
   const tfContext = {
     '15m': `${coin} 短期15分钟级别波动加剧，注意止损位置`,
     '1h':  `${coin} 小时级别关键支撑位测试，多空博弈激烈`,
@@ -1052,7 +985,6 @@ function renderEventPage(data) {
   const { indicators, closes, price, fib, vegas, elliott, ticker, fgVal, frValue, lsRatio, symbol } = data;
   const coin = (symbol || 'BTCUSDT').replace('USDT','');
 
-  // Update header
   document.getElementById('eventSymbol').textContent = coin + ' / USDT';
   if (ticker) {
     const chg = parseFloat(ticker.priceChangePercent || 0);
@@ -1062,7 +994,6 @@ function renderEventPage(data) {
     document.getElementById('eventPriceChg').style.color = chg >= 0 ? 'var(--green)' : 'var(--red)';
   }
 
-  // Update sparkline
   if (closes && closes.length > 1) {
     const sp = closes.slice(-40);
     const mn = Math.min(...sp), mx = Math.max(...sp), rng = mx - mn || 1;
@@ -1074,7 +1005,6 @@ function renderEventPage(data) {
     if (ef) ef.setAttribute('points', fillPts);
   }
 
-  // ── Build dimension scores ──────────────────────
   const dims = buildEventDimensions(indicators, fib, vegas, elliott, fgVal, frValue, lsRatio, price, closes);
   const totalBull = dims.reduce((s,d) => s + (d.score > 0 ? d.score : 0), 0);
   const totalBear = dims.reduce((s,d) => s + (d.score < 0 ? Math.abs(d.score) : 0), 0);
@@ -1082,7 +1012,6 @@ function renderEventPage(data) {
   const netScore  = (totalBull - totalBear) / totalMax;
   const confidence = Math.abs(netScore) * 100;
 
-  // ── Signal counts ──────────────────────────────
   const allInd = Object.values(indicators || {});
   const bullCount    = allInd.filter(v => v.type === 'bull').length;
   const bearCount    = allInd.filter(v => v.type === 'bear').length;
@@ -1096,7 +1025,6 @@ function renderEventPage(data) {
   document.getElementById('eventBearBar').style.width = (bearCount/indTotal*100).toFixed(1) + '%';
   document.getElementById('eventNeutralBar').style.width = (neutralCount/indTotal*100).toFixed(1) + '%';
 
-  // Donut (r=48, circumference≈301)
   const CIRC = 301;
   const bullArc = CIRC * (bullCount / indTotal);
   const bearArc = CIRC * (bearCount / indTotal);
@@ -1111,7 +1039,6 @@ function renderEventPage(data) {
   badge.textContent = `CALL ${bullCount} / PUT ${bearCount} / 中性 ${neutralCount}`;
   badge.className = `panel-badge ${netScore > 0.15 ? 'badge-green' : netScore < -0.15 ? 'badge-red' : 'badge-amber'}`;
 
-  // ── Direction verdict ──────────────────────────
   let callPut = '观望', dirColor = 'var(--amber)', dirIcon = '⊡', confText = '';
   if (netScore > 0.25)       { callPut = 'CALL ▲ 看涨'; dirColor = 'var(--green)'; dirIcon = '▲'; confText = `多维度共振看多，强烈建议买入 CALL 合约。置信度 ${pct}%`; }
   else if (netScore > 0.10)  { callPut = 'CALL ↑ 偏多'; dirColor = 'var(--green)'; dirIcon = '↑'; confText = `多头信号偏强，可考虑 CALL 方向，置信度 ${pct}%，建议轻仓`; }
@@ -1136,15 +1063,12 @@ function renderEventPage(data) {
   verdictBadge.textContent = netScore > 0.1 ? '买入 CALL' : netScore < -0.1 ? '买入 PUT' : '建议观望';
   verdictBadge.className = `panel-badge ${netScore > 0.1 ? 'badge-green' : netScore < -0.1 ? 'badge-red' : 'badge-amber'}`;
 
-  // ── Payout simulation (no SL/TP — event contracts have no stop loss) ───────
-  // Payout ratio varies by volatility; typical range 1.5x-3x. Use volatility proxy.
   const atrPct = price > 0 ? (closes ? Math.abs(closes[closes.length-1]-closes[closes.length-2])/price*100 : 1.5) : 1.5;
-  const baseRatio = Math.max(1.3, Math.min(2.8, 2.5 - atrPct * 0.2)); // higher vol = lower ratio
+  const baseRatio = Math.max(1.3, Math.min(2.8, 2.5 - atrPct * 0.2));
   const payoutWin = (100 * baseRatio).toFixed(0);
   document.getElementById('evPayoutWin').textContent = `+${payoutWin} USDT`;
   document.getElementById('evPayoutRatio').textContent = `赔率约 ${baseRatio.toFixed(2)}×（实时波动）`;
 
-  // ── Expiry suggestion ─────────────────────────
   const interval = window._lastInterval || '1h';
   const expiryMap = { '15m':'5-15分钟', '1h':'30分钟-1小时', '4h':'1-4小时', '1d':'4-24小时' };
   const expirySugg = expiryMap[interval] || '30分钟-1小时';
@@ -1155,11 +1079,9 @@ function renderEventPage(data) {
     ${confidence > 40 ? '置信度较高，可选择稍短的到期时间以锁定利润。' : '置信度一般，建议选择稍长的到期时间，给趋势更多确认时间。'}
     最低保费 5 USDT，建议单次操作不超过总资金 5%。`;
 
-  // Volatility context
   document.getElementById('evVolContext').textContent =
     `当前 ${coin} ATR波动率约 ${atrPct.toFixed(2)}%，${atrPct > 2 ? '波动较大，赔付比率相对较低，但获利机会多' : atrPct < 0.8 ? '波动较小，赔付比率可能偏高，适合等待突破' : '波动适中，赔付比率合理'}。预估赔付比率区间：${(baseRatio-0.3).toFixed(2)}× ~ ${(baseRatio+0.3).toFixed(2)}×`;
 
-  // ── Dimension list ─────────────────────────────
   const dimHtml = dims.map(d => {
     const fill = d.score > 0 ? 'var(--green)' : d.score < 0 ? 'var(--red)' : 'var(--text-muted)';
     const barW  = Math.min(100, Math.abs(d.score / d.weight * 100)).toFixed(0);
@@ -1175,7 +1097,6 @@ function renderEventPage(data) {
   document.getElementById('dimList').innerHTML = dimHtml;
   document.getElementById('dimBadge').textContent = `${dims.length}个维度`;
 
-  // ── Key signals ────────────────────────────────
   const keySigs = buildKeySigs(indicators, fgVal, frValue, netScore);
   const keySigHtml = keySigs.map(s =>
     `<div class="key-sig-item ${s.type}">
@@ -1187,17 +1108,14 @@ function renderEventPage(data) {
   document.getElementById('keySigList').innerHTML = keySigHtml;
   document.getElementById('keySigBadge').textContent = `${keySigs.filter(s=>s.type!=='neutral').length}个关键信号`;
 
-  // Risk note (event contract specific)
   document.getElementById('eventRiskNote').innerHTML =
     `<strong style="color:var(--amber);">⚠ 事件合约风险提示</strong><br>
     不能提前平仓，需持有至到期。最大亏损 = 保费本金（每日上限10,000 USDT）。
     ${confidence < 25 ? '<br><strong style="color:var(--red)">当前置信度低，建议观望不入场。</strong>' : ''}
     ${Math.abs(parseFloat(frValue||0)*100) > 0.15 ? `<br>资金费率偏高(${(parseFloat(frValue||0)*100).toFixed(3)}%)，多头持仓成本增加，做多需谨慎。` : ''}`;
 
-  // ── Full reasoning ────────────────────────────
   document.getElementById('eventReasoning').innerHTML = buildEventReasoning(dims, indicators, coin, callPut, pct, netScore, fgVal, frValue, baseRatio);
 
-  // ── Strategy reference ─────────────────────────
   renderEventStrategy(indicators, netScore, price, coin, baseRatio, expirySugg);
 }
 
@@ -1205,7 +1123,6 @@ function buildEventDimensions(indicators, fib, vegas, elliott, fgVal, frValue, l
   const dims = [];
   if (!indicators) return dims;
 
-  // 1. Trend dimension
   let trendScore = 0;
   if (indicators.ema?.type === 'bull') trendScore += 1;
   else if (indicators.ema?.type === 'bear') trendScore -= 1;
@@ -1217,7 +1134,6 @@ function buildEventDimensions(indicators, fib, vegas, elliott, fgVal, frValue, l
   else if (indicators.ichimoku?.type === 'bear') trendScore -= 0.8;
   dims.push({ name:'趋势', score: trendScore, weight: 4.3, label: trendScore > 1 ? '强多' : trendScore < -1 ? '强空' : trendScore > 0 ? '偏多' : trendScore < 0 ? '偏空' : '中性' });
 
-  // 2. Momentum dimension
   let momScore = 0;
   const rsiVal = indicators.rsi ? parseFloat(indicators.rsi.value) : 50;
   if (rsiVal < 35) momScore += 1.5; else if (rsiVal > 65) momScore -= 1.5;
@@ -1227,7 +1143,6 @@ function buildEventDimensions(indicators, fib, vegas, elliott, fgVal, frValue, l
   if (indicators.stochrsi?.type === 'bull') momScore += 0.6; else if (indicators.stochrsi?.type === 'bear') momScore -= 0.6;
   dims.push({ name:'动量', score: momScore, weight: 4.1, label: momScore > 1.5 ? '强多' : momScore < -1.5 ? '强空' : momScore > 0 ? '偏多' : momScore < 0 ? '偏空' : '中性' });
 
-  // 3. Volume dimension
   let volScore = 0;
   if (indicators.obv?.type === 'bull') volScore += 1; else if (indicators.obv?.type === 'bear') volScore -= 1;
   if (indicators.volume?.type === 'bull') volScore += 1.2; else if (indicators.volume?.type === 'bear') volScore -= 1.2;
@@ -1235,7 +1150,6 @@ function buildEventDimensions(indicators, fib, vegas, elliott, fgVal, frValue, l
   if (indicators.mfi?.type === 'bull') volScore += 0.6; else if (indicators.mfi?.type === 'bear') volScore -= 0.6;
   dims.push({ name:'成交量', score: volScore, weight: 3.6, label: volScore > 1 ? '资金流入' : volScore < -1 ? '资金流出' : '均衡' });
 
-  // 4. Volatility / structure
   let structScore = 0;
   if (indicators.boll?.type === 'bull') structScore += 0.8; else if (indicators.boll?.type === 'bear') structScore -= 0.8;
   if (indicators.donchian?.type === 'bull') structScore += 0.6; else if (indicators.donchian?.type === 'bear') structScore -= 0.6;
@@ -1243,14 +1157,12 @@ function buildEventDimensions(indicators, fib, vegas, elliott, fgVal, frValue, l
   if (vegas) { if (price > vegas.upper) structScore += 1; else if (price < vegas.lower) structScore -= 1; }
   dims.push({ name:'结构位置', score: structScore, weight: 3.4, label: structScore > 0.8 ? '支撑区' : structScore < -0.8 ? '压力区' : '中性区' });
 
-  // 5. Market sentiment
   let sentScore = 0;
   if (fgVal !== null) { const fv = parseInt(fgVal); if (fv < 30) sentScore += 1; else if (fv > 70) sentScore -= 1; }
   if (lsRatio !== null) { if (lsRatio > 1.3) sentScore += 0.5; else if (lsRatio < 0.77) sentScore -= 0.5; }
   if (frValue !== null) { const fr = parseFloat(frValue)*100; if (fr < -0.05) sentScore += 0.8; else if (fr > 0.1) sentScore -= 0.5; }
   dims.push({ name:'市场情绪', score: sentScore, weight: 2.3, label: sentScore > 0.5 ? '偏恐惧(利多)' : sentScore < -0.5 ? '贪婪(利空)' : '中性' });
 
-  // 6. Elliott / wave
   let waveScore = 0;
   if (elliott) {
     if (elliott.phase === 'bull') waveScore += 1.2; else if (elliott.phase === 'bear') waveScore -= 1.2;
@@ -1297,7 +1209,6 @@ function buildKeySigs(indicators, fgVal, frValue, netScore) {
   if (indicators.ichimoku?.type === 'bull') sigs.push({ type:'bull', icon:'⬡', text:`一目均衡云上方运行，价格处于多头主导区域`, weight:1.5 });
   else if (indicators.ichimoku?.type === 'bear') sigs.push({ type:'bear', icon:'⬡', text:`一目均衡云下方运行，价格处于空头主导区域`, weight:1.5 });
 
-  // Sort: bull/bear first, neutral last; by weight desc
   sigs.sort((a,b) => b.weight - a.weight);
   return sigs.slice(0, 7);
 }
@@ -1333,7 +1244,6 @@ function buildEventReasoning(dims, indicators, coin, callPut, pct, netScore, fgV
     <span style="font-size:12px;">${fgVal?`恐惧贪婪指数${fgVal}，${parseInt(fgVal)<30?'市场极度恐惧，历史上往往是中线买入时机':parseInt(fgVal)>70?'市场极度贪婪，注意风险':' 情绪中性'}。`:''}${frValue?`资金费率${(parseFloat(frValue)*100).toFixed(4)}%，${parseFloat(frValue)*100>0.1?'多头拥挤，警惕轧多':parseFloat(frValue)*100<-0.05?'空头付费，轧空行情概率增加':'属于正常范围'}。`:''}</span>
   </div>`;
 
-  // Update reasoning sections with correct content
   html = html.replace('一、趋势分析</strong><br>', `一、趋势分析（支撑 ${isUP?'CALL':'PUT'} 方向）</strong><br>`);
 
   html += `<div style="padding:10px 14px;background:rgba(245,166,35,0.07);border:1px solid rgba(245,166,35,0.2);border-radius:var(--r);margin-top:8px;">
@@ -1430,14 +1340,12 @@ function renderWhaleMonitor(coin, klines, ticker, cgInfo, onchain) {
   const vol24h = ticker ? parseFloat(ticker.quoteVolume) : 0;
   const change = ticker ? parseFloat(ticker.priceChangePercent) : 0;
 
-  // Derive whale signals from real volume data
   const vols = klines.map(k => parseFloat(k[5]));
   const avgVol = vols.slice(0,-1).reduce((a,b)=>a+b,0) / (vols.length-1 || 1);
   const lastVol = vols[vols.length-1] || 0;
   const volRatio = lastVol / (avgVol || 1);
 
   let html = '';
-  // Large position signal based on 24h volume
   if (vol24h > 5e9) {
     html += monitorItem('high','🐳', `${coin}检测到超大额成交量`, `24小时成交量 $${fmt(vol24h)}，是正常水平的${(vol24h/2e9).toFixed(1)}倍，疑似机构建仓行为。价格变动方向：${change>0?'上行':'下行'} ${Math.abs(change).toFixed(2)}%`, '超大额', 'badge-red');
   }
@@ -1448,7 +1356,6 @@ function renderWhaleMonitor(coin, klines, ticker, cgInfo, onchain) {
 
   html += monitorItem('info','🏦', `${coin}交易所净流量`, `基于24h价格变动 ${change>0?'+':''}${change.toFixed(2)}% 推算：${change>0?'净流出（用户提币做多）':'净流入（资金存入交易所，可能获利了结）'}。大额提币通常表示长期持有意愿增强。`, change>0?'净流出':'净流入', change>0?'badge-green':'badge-red');
 
-  // CoinGecko community data
   if (cgInfo?.community_data) {
     const cd = cgInfo.community_data;
     const twFollowers = cd.twitter_followers || 0;
@@ -1456,7 +1363,6 @@ function renderWhaleMonitor(coin, klines, ticker, cgInfo, onchain) {
     html += monitorItem('info','👥', `${coin}社区活跃度`, `Twitter关注 ${fmt(twFollowers)}，Reddit订阅 ${fmt(redditSubs)}。社区热度${twFollowers>1e6?'极高，市场关注度强':'中等'}。CoinGecko ${cgInfo.market_data?.market_cap_rank?`市值排名 #${cgInfo.market_data.market_cap_rank}`:'--'}。`, '实时数据', 'badge-blue');
   }
 
-  // GeckoTerminal onchain large trades
   if (onchain?.data?.length > 0) {
     const trades = onchain.data.slice(0,3);
     const buyCount  = trades.filter(t => t.attributes?.kind === 'buy').length;
@@ -1486,7 +1392,6 @@ function renderSmartMoney(coin, klines, ticker, cgInfo) {
   const price  = closes[last] || 0;
   const change = ticker ? parseFloat(ticker.priceChangePercent) : 0;
 
-  // Smart money divergence: price vs OBV
   let obv = 0;
   const obvArr = [0];
   for (let i = 1; i < closes.length; i++) {
@@ -1509,7 +1414,6 @@ function renderSmartMoney(coin, klines, ticker, cgInfo) {
     isDivergence ? 'badge-red' : 'badge-green'
   );
 
-  // Bullish/bearish engulfing patterns
   for (let i = Math.max(0, last-3); i <= last; i++) {
     const isBullEngulf = opens[i] < closes[i-1] && closes[i] > opens[i-1] && closes[i] > opens[i];
     const isBearEngulf = opens[i] > closes[i-1] && closes[i] < opens[i-1] && closes[i] < opens[i];
@@ -1525,7 +1429,6 @@ function renderSmartMoney(coin, klines, ticker, cgInfo) {
 
   html += monitorItem('info','💡', `${coin}机构持仓动向`, `根据近${klines.length}根K线数据分析：${change>0?'价格持续上涨，大概率有机构底部布局，做多信号':'价格持续下跌，可能有机构在顶部减仓'}。建议配合资金费率和持仓量变化综合判断。`, '推算值', 'badge-blue');
 
-  // CoinGecko market data enrichment
   if (cgInfo?.market_data) {
     const md = cgInfo.market_data;
     const ath = md.ath?.usd || 0;
@@ -1554,7 +1457,6 @@ function renderOnChainAnomalies(coin, klines, ticker, onchain, trending, globalI
   const vol    = ticker ? parseFloat(ticker.quoteVolume) : 0;
 
   let html = '';
-  // Volatility anomaly
   const vols   = klines.map(k => parseFloat(k[5]));
   const avgVol = vols.reduce((a,b)=>a+b,0)/vols.length;
   const stdVol = Math.sqrt(vols.reduce((s,v)=>(s+(v-avgVol)**2),0)/vols.length);
@@ -1573,7 +1475,6 @@ function renderOnChainAnomalies(coin, klines, ticker, onchain, trending, globalI
 
   html += monitorItem('info','🏛️', `${coin}合约持仓异动`, `基于资金费率和价格联动分析：${change>0&&lastVol>avgVol?'多头持仓量增加，做多意愿强烈，但需注意多头过度拥挤风险':'空头可能在布局，或多头在止盈出场'}。持仓量数据请参考合约数据模块。`, '分析中', 'badge-blue');
 
-  // Trending coins from CoinGecko
   if (trending?.coins?.length > 0) {
     const top5 = trending.coins.slice(0,5).map(tc => tc.item?.symbol || '').filter(Boolean).join(' · ');
     const isCoinTrending = trending.coins.some(tc => tc.item?.symbol?.toUpperCase() === coin);
@@ -1587,7 +1488,6 @@ function renderOnChainAnomalies(coin, klines, ticker, onchain, trending, globalI
     );
   }
 
-  // Global market data
   if (globalInfo?.data) {
     const gd = globalInfo.data;
     const btcDom = (gd.market_cap_percentage?.btc || 0).toFixed(1);
@@ -1604,7 +1504,6 @@ function renderOnChainAnomalies(coin, klines, ticker, onchain, trending, globalI
     );
   }
 
-  // GeckoTerminal onchain large trades anomaly
   if (onchain?.data?.length > 0) {
     const trades = onchain.data;
     const largestUSD = Math.max(...trades.map(t => parseFloat(t.attributes?.volume_in_usd||0)));
@@ -1628,7 +1527,6 @@ function renderExchangeFlow(coin, klines, ticker, cgInfo) {
   const vol    = ticker ? parseFloat(ticker.quoteVolume) : 0;
   const price  = ticker ? parseFloat(ticker.lastPrice) : 0;
 
-  // Binance exchange flow estimation
   const inflowEst  = vol * (change < 0 ? 0.55 : 0.42);
   const outflowEst = vol - inflowEst;
   const netFlow    = outflowEst - inflowEst;
@@ -1644,20 +1542,17 @@ function renderExchangeFlow(coin, klines, ticker, cgInfo) {
     isNetOut ? 'badge-green' : 'badge-amber'
   );
 
-  // Binance Futures vs Spot premium
   html += monitorItem('info','⚖️', `${coin}期现基差监控`, `当前价格 $${fmtPrice(price)}。期货合约价格通常与现货存在基差，${change>0?'上涨行情中期货溢价往往增大，反映多头预期':'下跌行情中基差收窄甚至倒挂，反映空头情绪'}。建议关注资金费率作为期现基差参考。`, '监控中', 'badge-blue');
 
   html += monitorItem('low','💰', `稳定币铸造动向`, `稳定币（USDT/USDC）大量铸造通常预示场外资金入场准备买币，是中期看涨信号。当前无法直接获取链上数据，建议参考CryptoQuant等链上数据平台获取准确数据。`, '参考值', 'badge-blue');
 
   html += monitorItem('info','🔄', `${coin}矿工持仓动向`, `矿工通常在价格高位出售${coin}以覆盖成本。基于当前价格水平，${price>50000?'高价区间矿工可能有出售意愿，关注矿工钱包转移':'价格偏低区间矿工通常选择囤积，抛压较小'}。`, '分析', 'badge-blue');
 
-  // CoinGecko exchange volume breakdown
   if (cgInfo?.tickers?.length > 0) {
     const topExchanges = cgInfo.tickers.slice(0,3).map(t => `${t.market?.name}($${fmt(parseFloat(t.converted_volume?.usd||0))})`).join(' · ');
     html += monitorItem('info','🏛️', `${coin} 主要交易所成交分布`, `Top交易所：${topExchanges}。流动性集中分析可帮助判断大额抛压来自哪个平台。`, 'CoinGecko', 'badge-blue');
   }
 
-  // CoinGecko developer activity
   if (cgInfo?.developer_data) {
     const dd = cgInfo.developer_data;
     const commits = (dd.commit_count_4_weeks || 0);
@@ -1753,7 +1648,6 @@ function renderRiskAlerts(coin, klines, ticker, frData) {
   if (vol24h > 5e9)          alerts.push({ level:'medium', name:'超高成交量',     desc:`24H成交量 $${fmt(vol24h)}，远超正常水平，大资金活跃，方向可信度高。`, bar:60, type:'neutral' });
   if (Math.abs(change) < 0.5 && vol24h < 1e8) alerts.push({ level:'low', name:'流动性不足', desc:'成交量极低，市场流动性差，大额订单可能造成较大滑点，不建议大仓位操作。', bar:40, type:'bear' });
 
-  // Default alerts
   alerts.push({ level:'low', name:'强平风险监控', desc:`${Math.abs(change)>3?'当前波动较大，高杠杆仓位存在强平风险。建议杠杆不超过5倍，设置合理止损。':'市场波动正常，强平风险可控。建议持续关注关键价格位。'}`, bar: 30, type:'neutral' });
   alerts.push({ level:'low', name:'黑天鹅预警',   desc:'持续监控中。黑天鹅事件（交易所宕机、重大黑客攻击、监管政策突变）无法通过技术指标预测，建议分散风险、保持安全边际。', bar:20, type:'neutral' });
 
@@ -1789,12 +1683,10 @@ function renderRiskAlerts(coin, klines, ticker, frData) {
 function renderLivePage() {
   let data = [..._liveStreamers];
 
-  // Filter
   if (_liveFilter !== 'all') {
     data = data.filter(s => s.coins.includes(_liveFilter));
   }
 
-  // Sort
   const sortFn = {
     score:   (a,b) => b.score - a.score,
     viewers: (a,b) => b.viewers - a.viewers,
@@ -1825,18 +1717,15 @@ function renderLivePage() {
   setEl('liveOverallBullPct', `看多 ${bullPct}%`);
   setEl('liveOverallBearPct', `看空 ${bearPct}%`);
 
-  // Hot topic
   const tagCount = {};
   data.forEach(s => s.tags.forEach(t => tagCount[t] = (tagCount[t]||0) + s.viewers));
   const hotTopic = Object.entries(tagCount).sort((a,b)=>b[1]-a[1])[0]?.[0] || '--';
   setEl('liveHotTopic', `#${hotTopic}`);
 
-  // Render cards
   const grid = document.getElementById('liveStreamerGrid');
   if (!grid) return;
 
   if (data.length === 0) {
-    // Show CORS notice with direct link and deployment guide
     grid.innerHTML = `<div style="grid-column:1/-1;padding:32px 20px;">
       <div style="max-width:560px;margin:0 auto;">
         <div style="text-align:center;margin-bottom:24px;">
@@ -2043,7 +1932,6 @@ function closeBrief() {
 
 function copyBrief() {
   const content = document.getElementById('briefContent');
-  // Get text version
   const plainText = getBriefPlainText(_lastAnalysisData);
   navigator.clipboard.writeText(plainText).then(() => {
     const btn = document.getElementById('copyBriefBtn');
@@ -2112,7 +2000,6 @@ function generateBrief(data) {
   const frNum    = frValue ? parseFloat(frValue)*100 : 0;
   const fibPct   = window._lastFibPct || 50;
 
-  // Overall verdict
   const longScore = bulls / (bulls + bears || 1) * 100;
   let verdict = '', verdictColor = 'var(--amber)', verdictBg = 'rgba(245,166,35,0.08)';
   if (longScore >= 65)      { verdict = '强烈做多 LONG'; verdictColor = 'var(--green)';  verdictBg = 'rgba(0,217,126,0.08)'; }
@@ -2126,7 +2013,6 @@ function generateBrief(data) {
 
   const sections = [];
 
-  // ── 简报标题 ──
   sections.push(`
     <div style="background:${verdictBg};border:1px solid ${verdictColor}40;border-radius:var(--r);padding:16px 18px;margin-bottom:16px;text-align:center;">
       <div style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:2px;margin-bottom:8px;">${coin}/USDT · ${tfText} · ${ts}</div>
@@ -2134,7 +2020,6 @@ function generateBrief(data) {
       <div style="font-size:13px;color:var(--text-dim);">综合信号 <span style="color:var(--green)">${bulls}利多</span> / <span style="color:var(--red)">${bears}利空</span> / <span style="color:var(--text-muted)">${neutral}中性</span></div>
     </div>`);
 
-  // ── 行情速览 ──
   sections.push(`
     <div class="brief-section">
       <div class="brief-section-title">行情速览</div>
@@ -2145,7 +2030,6 @@ function generateBrief(data) {
       </div>
     </div>`);
 
-  // ── 技术指标快览 ──
   const indRows = [
     ['MACD',      indicators?.macd,    'MACD金叉',    'MACD死叉'],
     ['EMA均线',   indicators?.ema,     '多头排列',    '空头排列'],
@@ -2177,7 +2061,6 @@ function generateBrief(data) {
       ${indHtml}
     </div>`);
 
-  // ── 合约市场 ──
   sections.push(`
     <div class="brief-section">
       <div class="brief-section-title">合约市场</div>
@@ -2205,7 +2088,6 @@ function generateBrief(data) {
       </div>
     </div>`);
 
-  // ── 综合结论 ──
   let conclusion = '';
   if (longScore >= 65) {
     conclusion = `多维度技术指标共振看多（${bulls}项利多 vs ${bears}项利空）。${indicators?.ema200?.type==='bull'?'EMA200长期支撑有效，':''}${rsiV<50?`RSI(${rsiV.toFixed(0)})未超买，上行空间充足，`:''}${indicators?.macd?.type==='bull'?'MACD金叉确认，':''}建议顺势轻仓做多，在关键支撑位设置止损。`;
@@ -2229,7 +2111,6 @@ function generateBrief(data) {
 }
 
 
-// ── 消息面渲染 ────────────────────────────────────────────────────────────────
 function renderNewsSentiment(news, coin) {
   if (!news || news.length === 0) {
     document.getElementById('newsListContainer').innerHTML =
@@ -2245,7 +2126,6 @@ function renderNewsSentiment(news, coin) {
   let bulls = 0, bears = 0, neutrals = 0;
   const analyzed = news.slice(0, 15).map(item => {
     const title = (item.title || '').toLowerCase();
-    // CryptoPanic votes
     const pos = item.votes?.positive || 0;
     const neg = item.votes?.negative || 0;
     let sent = 'neutral';
@@ -2273,7 +2153,6 @@ function renderNewsSentiment(news, coin) {
   const neutPct = 100 - bullPct - bearPct;
   const score = bullPct - bearPct;
 
-  // 综合结论
   let sentColor = 'var(--gold)';
   let sentLabel = '中性';
   let sentClass = 'badge-amber';
@@ -2284,11 +2163,9 @@ function renderNewsSentiment(news, coin) {
   else if (score <= -10) { sentColor = 'var(--red)';   sentLabel = '略偏空';   sentClass = 'badge-red';   conclusion = `消息面略偏消极，需关注负面信号是否持续发酵。`; }
   else                   { conclusion = `消息面多空均衡，市场情绪相对中性，暂无明显方向性信号。`; }
 
-  // 情绪分
   const scoreEl = document.getElementById('newsSentScore');
   if (scoreEl) { scoreEl.textContent = score > 0 ? '+' + score : score; scoreEl.style.color = sentColor; }
 
-  // 进度条
   const bullBar = document.getElementById('newsBullBar');
   const neutBar = document.getElementById('newsNeutBar');
   const bearBar = document.getElementById('newsBearBar');
@@ -2308,8 +2185,6 @@ function renderNewsSentiment(news, coin) {
 
   const badge = document.getElementById('newsSentBadge');
   if (badge) { badge.textContent = sentLabel; badge.className = 'panel-badge ' + sentClass; }
-
-  // 新闻列表
   const listEl = document.getElementById('newsListContainer');
   if (!listEl) return;
   listEl.innerHTML = analyzed.map(item => {

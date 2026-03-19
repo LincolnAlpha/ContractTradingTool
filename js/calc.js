@@ -1,5 +1,3 @@
-// ── 合约计算器模块 ────────────────────────────────────────────────────────────
-
 let _calcCoin     = 'BTC';
 let _calcDir      = 'long';
 let _calcMode     = 'cross';
@@ -13,24 +11,19 @@ let _calcLows     = [];
 let _calcCloses   = [];
 let _calcVolumes  = [];
 
-// ── 初始化 ────────────────────────────────────────────────────────────────────
 async function loadCalcPage() {
-  // 直接显示计算器，不依赖合约分析页
   const tipEl  = document.getElementById('calcNoDataTip');
   const mainEl = document.getElementById('calcMain');
   if (tipEl)  tipEl.style.display = 'none';
   if (mainEl) { mainEl.style.display = 'flex'; mainEl.style.flexDirection = 'column'; mainEl.style.gap = '16px'; }
 
-  // 初始化币种搜索框
   const symInp = document.getElementById('calcSymbolInput');
   if (symInp && !symInp.value) symInp.value = _calcCoin + '/USDT';
 
-  // 加载行情和K线数据
   await calcLoadAllData();
 
   calcUpdate();
 
-  // 定时刷新价格（5秒）
   if (_calcTimer) clearInterval(_calcTimer);
   _calcTimer = setInterval(async () => {
     try {
@@ -45,7 +38,6 @@ async function loadCalcPage() {
   }, 5000);
 }
 
-// 加载计算器所需全部数据（独立于合约分析页）
 async function calcLoadAllData() {
   const symbol   = _calcCoin + 'USDT';
   const interval = '1h';
@@ -63,22 +55,18 @@ async function calcLoadAllData() {
 
     if (klines && klines.length > 5) {
       _calcKlines = klines;
-      // 提取高低收量
       _calcHighs   = klines.map(k => parseFloat(k[2]));
       _calcLows    = klines.map(k => parseFloat(k[3]));
       _calcCloses  = klines.map(k => parseFloat(k[4]));
       _calcVolumes = klines.map(k => parseFloat(k[5]));
 
-      // 计算ATR
       const atrArr = calcATR(_calcHighs, _calcLows, _calcCloses, 14);
       const lastATR = atrArr[atrArr.length - 1];
       if (lastATR && !isNaN(lastATR)) _calcATR = lastATR;
 
-      // 填入当前价
       const entryEl = document.getElementById('calcEntryPrice');
       if (entryEl && !entryEl.value) entryEl.value = _calcPrice;
 
-      // 渲染支撑阻力
       calcRenderSR();
     }
   } catch(e) {
@@ -100,7 +88,6 @@ async function calcFetchPrice() {
   } catch(e) {}
 }
 
-// ── 主计算逻辑 ────────────────────────────────────────────────────────────────
 function calcUpdate() {
   const margin    = parseFloat(document.getElementById('calcMargin')?.value || 0);
   const lev       = parseInt(document.getElementById('calcLevSlider')?.value || 10);
@@ -110,18 +97,13 @@ function calcUpdate() {
 
   if (!margin || !lev || !entry) return;
 
-  const posValue  = margin * lev;                          // 仓位价值
-  const posCoins  = posValue / entry;                      // 持仓数量
+  const posValue  = margin * lev; 
+  const posCoins  = posValue / entry;
   const isCross   = _calcMode === 'cross';
   const isLong    = _calcDir === 'long';
-
-  // 爆仓价计算
-  // 逐仓: liqPrice = entry × (1 - 1/lev + 维持保证金率) ≈ entry × (1 - 1/lev + 0.005)
-  // 全仓: 用账户余额计算
-  const mmr = 0.005; // 维持保证金率 0.5%
+  const mmr = 0.005;
   let liqPrice;
   if (isCross && balance > 0) {
-    // 全仓爆仓价: 账户余额全部亏完的价格
     const totalMargin = balance;
     if (isLong) {
       liqPrice = entry - (totalMargin / posCoins) + entry * mmr;
@@ -129,7 +111,6 @@ function calcUpdate() {
       liqPrice = entry + (totalMargin / posCoins) - entry * mmr;
     }
   } else {
-    // 逐仓
     if (isLong) {
       liqPrice = entry * (1 - 1 / lev + mmr);
     } else {
@@ -141,16 +122,10 @@ function calcUpdate() {
 
   const liqDist    = Math.abs(entry - liqPrice);
   const liqDistPct = (liqDist / entry * 100).toFixed(2);
-
-  // 实际杠杆（全仓）
   const realLev    = isCross && balance > 0 ? (posValue / balance).toFixed(1) : lev.toFixed(1);
   const marginRatio = isCross && balance > 0 ? (margin / balance * 100).toFixed(1) : null;
-
-  // 最大亏损（逐仓=保证金全亏；全仓=账户余额）
   const maxLoss    = isCross ? balance : margin;
   const maxLossPct = isCross && balance > 0 ? (maxLoss / balance * 100).toFixed(1) : '100';
-
-  // 渲染核心结果
   const setEl = (id, val, color) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -167,21 +142,17 @@ function calcUpdate() {
   setEl('calcMaxLoss',       '-$' + fmt(maxLoss), 'var(--red)');
   setEl('calcMaxLossPct',    '亏损 ' + maxLossPct + '%');
 
-  // 风险评级
   calcRenderRisk(lev, liqDistPct, marginRatio, isCross, balance, margin, posValue);
 
-  // 止损止盈
   if (_calcSLMode === 'auto') {
     calcRenderAutoSLTP(entry, posValue, isLong);
   } else {
     calcRenderManualSLTP(entry, posValue, isLong);
   }
 
-  // 综合建议
   calcRenderAdvice(lev, liqDistPct, entry, liqPrice, isLong, isCross, balance, margin, marginRatio);
 }
 
-// ── 风险评级 ──────────────────────────────────────────────────────────────────
 function calcRenderRisk(lev, liqDistPct, marginRatio, isCross, balance, margin, posValue) {
   const dist = parseFloat(liqDistPct);
   let level, color, text;
@@ -213,9 +184,8 @@ function calcRenderRisk(lev, liqDistPct, marginRatio, isCross, balance, margin, 
   }
 }
 
-// ── 自动止损止盈（ATR） ───────────────────────────────────────────────────────
 function calcRenderAutoSLTP(entry, posValue, isLong) {
-  const atr = _calcATR > 0 ? _calcATR : entry * 0.02; // 无ATR时用2%估算
+  const atr = _calcATR > 0 ? _calcATR : entry * 0.02;
   const slDist = atr * 1.5;
   const tpDist = atr * 3;
 
@@ -241,14 +211,12 @@ function calcRenderAutoSLTP(entry, posValue, isLong) {
   setEl('calcAutoSLLoss', '-$' + slLoss,         'var(--red)');
   setEl('calcAutoTPGain', '+$' + tpGain,         'var(--green)');
 
-  // 风险回报比
   const rrrEl = document.getElementById('calcAutoRRR');
   if (rrrEl) { rrrEl.textContent = '1 : 2.0'; rrrEl.style.color = 'var(--green)'; }
   const atrEl = document.getElementById('calcAutoATR');
   if (atrEl) atrEl.textContent = 'ATR = $' + fmtPrice(atr);
 }
 
-// ── 手动止损止盈 ──────────────────────────────────────────────────────────────
 function calcRenderManualSLTP(entry, posValue, isLong) {
   const slPrice = parseFloat(document.getElementById('calcManualSL')?.value || 0);
   const tpPrice = parseFloat(document.getElementById('calcManualTP')?.value || 0);
@@ -289,12 +257,10 @@ function calcRenderManualSLTP(entry, posValue, isLong) {
   }
 }
 
-// ── 支撑阻力位（来自分析数据） ────────────────────────────────────────────────
 function calcRenderSR() {
   const listEl = document.getElementById('calcSRList');
   if (!listEl) return;
 
-  // 优先使用计算器自己的数据，其次用合约分析页数据
   const closes = _calcCloses.length > 0 ? _calcCloses : (window._lastAnalysisData?.closes || []);
   const highs  = _calcHighs.length  > 0 ? _calcHighs  : (window._lastAnalysisData?.highs  || []);
   const lows   = _calcLows.length   > 0 ? _calcLows   : (window._lastAnalysisData?.lows   || []);
@@ -307,7 +273,6 @@ function calcRenderSR() {
   const price = _calcPrice || closes[closes.length - 1];
   const rows  = [];
 
-  // 斐波那契关键位（直接调用全局函数）
   try {
     const fib = calcFibonacci(highs, lows, closes);
     if (fib && fib.levels) {
@@ -329,7 +294,6 @@ function calcRenderSR() {
     }
   } catch(e) {}
 
-  // 指标关键价位
   const keyInds = [
     { key: 'ema200', label: 'EMA200' },
     { key: 'vwap',   label: 'VWAP' },
@@ -347,7 +311,6 @@ function calcRenderSR() {
     });
   });
 
-  // 近期摆动高低点
   const n = closes.length;
   const swingHighs = [], swingLows = [];
   for (let i = 2; i < n - 2; i++) {
@@ -384,7 +347,6 @@ function calcRenderSR() {
   }).join('');
 }
 
-// ── 综合建议 ──────────────────────────────────────────────────────────────────
 function calcRenderAdvice(lev, liqDistPct, entry, liqPrice, isLong, isCross, balance, margin, marginRatio) {
   const listEl = document.getElementById('calcAdviceList');
   if (!listEl) return;
@@ -392,7 +354,6 @@ function calcRenderAdvice(lev, liqDistPct, entry, liqPrice, isLong, isCross, bal
   const advices = [];
   const dist = parseFloat(liqDistPct);
 
-  // 杠杆建议
   if (lev >= 50) {
     advices.push({ icon: '🚨', text: `${lev}倍杠杆极度危险，市场2%波动即可触发强平，强烈建议降至20倍以下` });
   } else if (lev >= 20) {
@@ -403,7 +364,6 @@ function calcRenderAdvice(lev, liqDistPct, entry, liqPrice, isLong, isCross, bal
     advices.push({ icon: '📊', text: `${lev}倍杠杆适中，注意配合止损管理` });
   }
 
-  // 仓位占比建议
   if (marginRatio) {
     const pct = parseFloat(marginRatio);
     if (pct > 50) {
@@ -415,7 +375,6 @@ function calcRenderAdvice(lev, liqDistPct, entry, liqPrice, isLong, isCross, bal
     }
   }
 
-  // 爆仓距离建议
   if (dist < 5) {
     advices.push({ icon: '🚨', text: `爆仓价仅距当前价${dist}%，极易被瞬间波动触发强平` });
   } else if (dist < 10) {
@@ -424,7 +383,6 @@ function calcRenderAdvice(lev, liqDistPct, entry, liqPrice, isLong, isCross, bal
     advices.push({ icon: '✅', text: `爆仓距离${dist}%，相对安全，仍建议设置止损保护利润` });
   }
 
-  // 技术面建议
   if (_lastAnalysisData?.indicators) {
     const inds = _lastAnalysisData.indicators;
     const bulls = Object.values(inds).filter(v => v.type === 'bull').length;
@@ -438,7 +396,6 @@ function calcRenderAdvice(lev, liqDistPct, entry, liqPrice, isLong, isCross, bal
     }
   }
 
-  // 止损建议
   advices.push({ icon: '💡', text: `建议止损设在爆仓价之前，避免账户归零。推荐使用ATR止损（自动模式）` });
 
   listEl.innerHTML = advices.map(a =>
@@ -449,7 +406,6 @@ function calcRenderAdvice(lev, liqDistPct, entry, liqPrice, isLong, isCross, bal
   ).join('');
 }
 
-// ── 交互操作 ──────────────────────────────────────────────────────────────────
 function calcSelectCoin(coin) {
   _calcCoin = coin;
   document.getElementById('calcBtnBTC')?.classList.toggle('active', coin === 'BTC');
@@ -522,13 +478,11 @@ function calcUseCurrentPrice() {
   calcUpdate();
 }
 
-// ── 币种搜索下拉 ──────────────────────────────────────────────────────────────
 function calcOpenDropdown() {
   const inp = document.getElementById('calcSymbolInput');
   const dd  = document.getElementById('calcSymbolDropdown');
   if (!inp || !dd) return;
 
-  // allSymbols
   const symbols = window._allSymbols || [];
   if (symbols.length === 0) {
     dd.innerHTML = '<div style="padding:10px;color:var(--text-muted);font-size:12px;">加载中...</div>';
@@ -573,7 +527,6 @@ function calcSelectSymbol(base) {
   const hidden = document.getElementById('calcCoinValue');
   if (hidden) hidden.value = base;
   calcCloseDropdown();
-  // 重置K线数据，重新加载
   _calcKlines = null; _calcHighs = []; _calcLows = []; _calcCloses = []; _calcVolumes = [];
   const entryEl = document.getElementById('calcEntryPrice');
   if (entryEl) entryEl.value = '';

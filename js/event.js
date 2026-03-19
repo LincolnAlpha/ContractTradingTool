@@ -1,13 +1,9 @@
-// ── 事件合约模块 ──────────────────────────────────────────────────────────────
-
-// 状态
 let _evCoin = 'BTC';
 let _evDuration = 10; // 分钟
 let _evKlines = null;
 let _evTicker = null;
 let _evSettleTimer = null;
 
-// ── 账户管理 ──────────────────────────────────────────────────────────────────
 function evGetAccount() {
   try {
     const saved = localStorage.getItem('ev_account');
@@ -40,13 +36,12 @@ function evSaveHistory(hist) {
   localStorage.setItem('ev_history', JSON.stringify(hist.slice(0, 50)));
 }
 
-// ── 初始化 ────────────────────────────────────────────────────────────────────
 async function loadEventPage() {
   evUpdateBalance();
   evUpdateStats();
   evRenderActiveOrders();
   evRenderHistory();
-  await evLoadMarketData(true); // 首次加载计算建议
+  await evLoadMarketData(true);
   evStartSettleLoop();
 }
 
@@ -61,12 +56,10 @@ async function evLoadMarketData(recalc = true) {
     _evTicker = ticker;
     _evKlines = klines;
     evRenderPrice();
-    // 只在明确需要重新计算时才更新建议（切换币种/时间维度时）
     if (recalc) evCalcSuggestion();
   } catch(e) {}
 }
 
-// ── 行情渲染 ──────────────────────────────────────────────────────────────────
 function evRenderPrice() {
   if (!_evTicker) return;
   const t = _evTicker;
@@ -91,14 +84,12 @@ function evRenderPrice() {
   const volEl = document.getElementById('evVol');
   if (volEl) volEl.textContent = '$' + fmt(parseFloat(t.quoteVolume));
 
-  // 미니차트
   if (_evKlines && _evKlines.length > 0) {
     const closes = _evKlines.map(k => parseFloat(k[4]));
     updateMiniChart(closes.slice(-60), 'evMiniChart');
   }
 }
 
-// ── 系统方向建议 ──────────────────────────────────────────────────────────────
 function evCalcSuggestion() {
   const dirEl    = document.getElementById('evDirection');
   const confEl   = document.getElementById('evConfidence');
@@ -122,12 +113,9 @@ function evCalcSuggestion() {
   const bullReasons = [];
   const bearReasons = [];
 
-  // 时间维度权重
   const isShort  = _evDuration <= 10;
   const isMid    = _evDuration <= 60;
 
-  // ── 短期动量指标 ─────────────────────────────────────────────────
-  // RSI
   const rsiVal = indicators.rsi;
   if (rsiVal) {
     const r = parseFloat(rsiVal.value);
@@ -137,50 +125,42 @@ function evCalcSuggestion() {
     }
   }
 
-  // MACD
   const macdVal = indicators.macd;
   if (macdVal) {
     if (macdVal.type === 'bull') { score += isShort ? 2 : 1; bullReasons.push('MACD金叉'); }
     else if (macdVal.type === 'bear') { score -= isShort ? 2 : 1; bearReasons.push('MACD死叉'); }
   }
 
-  // StochRSI
   const stochVal = indicators.stochrsi;
   if (stochVal) {
     if (stochVal.type === 'bull') { score += 1; bullReasons.push('StochRSI超卖金叉'); }
     else if (stochVal.type === 'bear') { score -= 1; bearReasons.push('StochRSI超买死叉'); }
   }
 
-  // KDJ
   const kdjVal = indicators.kdj;
   if (kdjVal) {
     if (kdjVal.type === 'bull') { score += 1; bullReasons.push('KDJ金叉'); }
     else if (kdjVal.type === 'bear') { score -= 1; bearReasons.push('KDJ死叉'); }
   }
 
-  // ── 中期趋势指标（非短期时加权）─────────────────────────────────
   if (!isShort) {
-    // EMA
     const emaVal = indicators.ema;
     if (emaVal) {
       if (emaVal.type === 'bull') { score += 2; bullReasons.push('EMA多头排列'); }
       else if (emaVal.type === 'bear') { score -= 2; bearReasons.push('EMA空头排列'); }
     }
 
-    // Bollinger
     const bollVal = indicators.boll;
     if (bollVal) {
       if (bollVal.type === 'bull') { score += 1; bullReasons.push('布林带下轨支撑'); }
       else if (bollVal.type === 'bear') { score -= 1; bearReasons.push('布林带上轨压力'); }
     }
 
-    // ADX
     const adxVal = indicators.adx;
     if (adxVal && adxVal.type !== 'neutral') {
       if (adxVal.type === 'bull') { score += 1; bullReasons.push('ADX趋势增强'); }
     }
 
-    // VWAP
     const vwapVal = indicators.vwap;
     if (vwapVal) {
       if (vwapVal.type === 'bull') { score += 1; bullReasons.push('价格在VWAP上方'); }
@@ -188,7 +168,6 @@ function evCalcSuggestion() {
     }
   }
 
-  // ── 长期指标（仅1天时）─────────────────────────────────────────
   if (!isMid) {
     const ichVal = indicators.ichimoku;
     if (ichVal) {
@@ -203,21 +182,18 @@ function evCalcSuggestion() {
     }
   }
 
-  // ── 价格行为 PA ─────────────────────────────────────────────────
   const paVal = indicators.pa;
   if (paVal) {
     if (paVal.type === 'bull') { score += 2; bullReasons.push(`PA结构看多(${paVal.value})`); }
     else if (paVal.type === 'bear') { score -= 2; bearReasons.push(`PA结构看空(${paVal.value})`); }
   }
 
-  // ── 成交量 ─────────────────────────────────────────────────────
   const volVal = indicators.volume;
   if (volVal) {
     if (volVal.type === 'bull') { score += 1; bullReasons.push('成交量放大确认'); }
     else if (volVal.type === 'bear') { score -= 1; bearReasons.push('成交量萎缩'); }
   }
 
-  // ── 综合评分 ────────────────────────────────────────────────────
   const allVals = Object.values(indicators);
   const totalBulls = allVals.filter(v => v.type === 'bull').length;
   const totalBears = allVals.filter(v => v.type === 'bear').length;
@@ -225,7 +201,6 @@ function evCalcSuggestion() {
   if (techBias >= 5)       { score += 2; bullReasons.push(`综合指标偏多(${totalBulls}利多)`); }
   else if (techBias <= -5) { score -= 2; bearReasons.push(`综合指标偏空(${totalBears}利空)`); }
 
-  // ── 判断结果 ────────────────────────────────────────────────────
   let direction, dirColor, confidence, confColor;
 
   if (score >= 6)       { direction = '▲ 看涨'; dirColor = 'var(--green)'; confidence = '强烈'; confColor = 'var(--green)'; }
@@ -236,7 +211,6 @@ function evCalcSuggestion() {
   else if (score <= -1) { direction = '▼ 看跌'; dirColor = '#ff9800';     confidence = '偏弱'; confColor = 'var(--gold)'; }
   else                  { direction = '→ 观望'; dirColor = 'var(--gold)'; confidence = '信号不明'; confColor = 'var(--gold)'; }
 
-  // 理由（取最相关的3条）
   const reasons = score >= 0
     ? [...bullReasons.slice(0, 3), ...bearReasons.slice(0, 1)]
     : [...bearReasons.slice(0, 3), ...bullReasons.slice(0, 1)];
@@ -249,11 +223,9 @@ function evCalcSuggestion() {
   const badgeText  = score > 2 ? '建议看涨' : score < -2 ? '建议看跌' : '建议观望';
   if (badgeEl) { badgeEl.textContent = badgeText; badgeEl.className = 'panel-badge ' + badgeClass; }
 
-  // 存储供下单使用
   window._evSuggestion = { direction: score > 0 ? 'up' : score < 0 ? 'down' : 'neutral', score, confidence };
 }
 
-// ── 下单逻辑 ──────────────────────────────────────────────────────────────────
 function evSetAmount(val) {
   const inp = document.getElementById('evAmount');
   if (inp) { inp.value = val; evUpdateAmountDisplay(); }
@@ -278,7 +250,6 @@ function evPlaceOrder(direction) {
   const acc = evGetAccount();
   if (amount > acc.balance) { alert(`余额不足，当前余额 ${acc.balance.toFixed(2)} USDT`); return; }
 
-  // 确认弹窗
   const dirText  = direction === 'up' ? '▲ 买涨' : '▼ 买跌';
   const timeText = _evDuration >= 1440 ? '1天' : _evDuration >= 60 ? '1小时' : _evDuration + '分钟';
   const price    = fmtPrice(parseFloat(_evTicker.lastPrice));
@@ -314,11 +285,9 @@ function evPlaceOrder(direction) {
     suggestionDir: suggestion?.direction || 'neutral',
   };
 
-  // 扣除余额
   acc.balance = parseFloat((acc.balance - amount).toFixed(2));
   evSaveAccount(acc);
 
-  // 存储订单
   const orders = evGetOrders();
   orders.push(order);
   evSaveOrders(orders);
@@ -329,14 +298,12 @@ function evPlaceOrder(direction) {
   showToast('已下单 ' + dirText + ' ' + _evCoin + ' · ' + amount + ' USDT · ' + timeText + '后结算');
 }
 
-// ── 结算逻辑 ──────────────────────────────────────────────────────────────────
 function evStartSettleLoop() {
   if (_evSettleTimer) clearInterval(_evSettleTimer);
   _evSettleTimer = setInterval(() => {
     evCheckSettle();
     evUpdateCountdowns();
   }, 1000);
-  // 每30秒静默刷新价格（不重新计算建议）
   setInterval(() => {
     if (_evCoin && _evTicker) {
       getTicker(_evCoin + 'USDT').then(t => {
@@ -354,11 +321,9 @@ async function evCheckSettle() {
   const expired = orders.filter(o => now >= o.expireAt);
   if (expired.length === 0) return;
 
-  // 获取当前价格
   const btcPrice = _evCoin === 'BTC' ? parseFloat(_evTicker?.lastPrice || 0) : null;
   const ethPrice = _evCoin === 'ETH' ? parseFloat(_evTicker?.lastPrice || 0) : null;
 
-  // 对于其他币种的订单也需要价格
   const priceMap = {};
   if (_evTicker) priceMap[_evCoin] = parseFloat(_evTicker.lastPrice);
 
@@ -369,10 +334,8 @@ async function evCheckSettle() {
   for (const order of orders) {
     if (now < order.expireAt) { remaining.push(order); continue; }
 
-    // 结算价格
     let exitPrice = priceMap[order.coin];
     if (!exitPrice) {
-      // 需要重新获取
       try {
         const t = await getTicker(order.coin + 'USDT');
         exitPrice = parseFloat(t.lastPrice);
@@ -399,7 +362,6 @@ async function evCheckSettle() {
       settledAt: now,
     });
 
-    // 通知
     const dirText = order.direction === 'up' ? '▲买涨' : '▼买跌';
     const result  = won ? `✅ +${pnl} USDT` : `❌ -${order.amount} USDT`;
     showToast(`${order.coin} ${dirText} 已结算 ${result}`);
@@ -429,7 +391,6 @@ function evUpdateCountdowns() {
   });
 }
 
-// ── 渲染函数 ──────────────────────────────────────────────────────────────────
 function evUpdateBalance() {
   const acc = evGetAccount();
   const el = document.getElementById('evBalance');
@@ -535,7 +496,6 @@ function evRenderHistory() {
   }).join('');
 }
 
-// ── 切换操作 ──────────────────────────────────────────────────────────────────
 function evSelectCoin(coin) {
   _evCoin = coin;
   document.getElementById('evBtnBTC')?.classList.toggle('active', coin === 'BTC');
@@ -544,7 +504,7 @@ function evSelectCoin(coin) {
   const dnEl = document.getElementById('evDownCoin');
   if (upEl) upEl.textContent   = coin + ' 涨';
   if (dnEl) dnEl.textContent   = coin + ' 跌';
-  evLoadMarketData(true); // 切换币种，重新计算建议
+  evLoadMarketData(true);
 }
 
 function evSelectDuration(mins) {
@@ -552,7 +512,7 @@ function evSelectDuration(mins) {
   document.querySelectorAll('.ev-time-btn').forEach(btn => {
     btn.classList.toggle('active', parseInt(btn.dataset.duration) === mins);
   });
-  evLoadMarketData(true); // 切换时间，重新计算建议
+  evLoadMarketData(true);
 }
 
 function evResetAccount() {
@@ -567,7 +527,6 @@ function evResetAccount() {
   showToast('账户已重置，余额恢复 1000 USDT');
 }
 
-// ── Toast 通知 ────────────────────────────────────────────────────────────────
 function showToast(msg) {
   let toast = document.getElementById('evToast');
   if (!toast) {
@@ -582,14 +541,12 @@ function showToast(msg) {
   toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
 }
 
-// ── 金额输入监听 ──────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   const amtInput = document.getElementById('evAmount');
   if (amtInput) amtInput.addEventListener('input', evUpdateAmountDisplay);
   evUpdateAmountDisplay();
 });
 
-// ── 刷新建议 ──────────────────────────────────────────────────────────────────
 async function evRefreshSuggestion() {
   const btn = document.getElementById('evRefreshBtn');
   if (btn) { btn.textContent = '⟳ 分析中...'; btn.disabled = true; }

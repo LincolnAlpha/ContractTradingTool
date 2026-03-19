@@ -1,6 +1,5 @@
 <div class="main">
 
-    <!-- 行情区 -->
     <div class="price-hero" id="evPriceHero">
       <div class="price-main">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
@@ -18,7 +17,6 @@
       <canvas class="mini-chart" id="evMiniChart" width="180" height="52"></canvas>
     </div>
 
-    <!-- 系统建议区 -->
     <div class="panel" id="evSuggestionPanel">
       <div class="panel-header">
         <div class="panel-title">系统方向建议</div>
@@ -26,14 +24,12 @@
         <button onclick="evRefreshSuggestion()" id="evRefreshBtn" style="margin-left:auto;background:none;border:1px solid var(--border2);color:var(--text-muted);font-size:11px;padding:4px 10px;border-radius:var(--r);cursor:pointer;font-family:var(--mono);transition:all 0.15s;" title="重新分析">⟳ 刷新分析</button>
       </div>
       <div class="panel-body">
-        <!-- 时间维度选择 -->
         <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
           <button class="ev-time-btn active" data-duration="10" onclick="evSelectDuration(10)">10分钟</button>
           <button class="ev-time-btn" data-duration="30" onclick="evSelectDuration(30)">30分钟</button>
           <button class="ev-time-btn" data-duration="60" onclick="evSelectDuration(60)">1小时</button>
           <button class="ev-time-btn" data-duration="1440" onclick="evSelectDuration(1440)">1天</button>
         </div>
-        <!-- 建议结果 -->
         <div style="display:flex;align-items:center;gap:20px;padding:16px;background:var(--bg2);border-radius:var(--r-lg);margin-bottom:14px;flex-wrap:wrap;">
           <div style="text-align:center;flex-shrink:0;">
             <div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-bottom:6px;letter-spacing:1px;">方向建议</div>
@@ -48,14 +44,12 @@
             <div style="font-size:12px;color:var(--text-dim);line-height:1.8;" id="evReasons">--</div>
           </div>
         </div>
-        <!-- 风险提示 -->
         <div style="font-size:11px;color:var(--text-muted);padding:8px 12px;background:rgba(240,185,11,0.06);border:1px solid rgba(240,185,11,0.15);border-radius:var(--r);line-height:1.6;">
           ⚠ 本建议基于技术分析，仅供参考。市场存在不确定性，请理性参与模拟交易。
         </div>
       </div>
     </div>
 
-    <!-- 下单区 -->
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">模拟下单</div>
@@ -63,7 +57,6 @@
       </div>
       <div class="panel-body">
         <div style="display:flex;flex-direction:column;gap:14px;">
-          <!-- 金额输入 -->
           <div>
             <div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-bottom:8px;letter-spacing:1px;">下单金额 (USDT)</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -75,11 +68,9 @@
               <button class="ev-quick-btn" onclick="evSetAmount(500)">500</button>
             </div>
           </div>
-          <!-- 赔率说明 -->
           <div style="font-size:12px;color:var(--text-muted);font-family:var(--mono);">
             猜对赔率 <span style="color:var(--green);font-weight:700;">+80%</span> · 下单 <span id="evAmountShow" style="color:var(--gold);">10</span> USDT · 猜对得 <span id="evWinShow" style="color:var(--green);">18</span> USDT
           </div>
-          <!-- 买涨买跌 -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <button class="ev-order-btn bull" onclick="evPlaceOrder('up')">
               <span style="font-size:18px;">▲</span>
@@ -96,7 +87,6 @@
       </div>
     </div>
 
-    <!-- 持仓区 -->
     <div class="panel" id="evActivePanel">
       <div class="panel-header">
         <div class="panel-title">当前持仓</div>
@@ -109,7 +99,6 @@
       </div>
     </div>
 
-    <!-- 统计区 -->
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">账户统计</div>
@@ -137,7 +126,6 @@
       </div>
     </div>
 
-    <!-- 历史订单 -->
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">历史订单</div>

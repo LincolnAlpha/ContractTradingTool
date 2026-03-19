@@ -1,5 +1,3 @@
-// ── indicators ──────────────────────────────────────────────────────────────────
-
 function calcEMA(data, period) {
   const k = 2 / (period + 1);
   let ema = [data[0]];
@@ -192,7 +190,6 @@ function calcADX(highs, lows, closes, period=14) {
     plusDM.push(up>dn && up>0 ? up : 0);
     minusDM.push(dn>up && dn>0 ? dn : 0);
   }
-  // Wilder smoothing
   let atr14=trArr.slice(0,period).reduce((a,b)=>a+b,0);
   let p14=plusDM.slice(0,period).reduce((a,b)=>a+b,0);
   let m14=minusDM.slice(0,period).reduce((a,b)=>a+b,0);
@@ -208,7 +205,6 @@ function calcADX(highs, lows, closes, period=14) {
     const dx=pdi+mdi===0?0:Math.abs(pdi-mdi)/(pdi+mdi)*100;
     adxArr.push(dx);
   }
-  // ADX = 14-period Wilder MA of DX
   let adx=adxArr.slice(0,period).reduce((a,b)=>a+b,0)/period;
   for(let i=period;i<adxArr.length;i++) adx=(adx*(period-1)+adxArr[i])/period;
   const lastIdx=trArr.length-1;
@@ -254,7 +250,6 @@ function calcFibonacci(highs, lows, closes, lookback=100) {
     '161.8': swingLow + range * 1.618,
   };
   const pct = (price - swingLow) / range * 100;
-  // Find nearest levels
   const levelArr = [0, 23.6, 38.2, 50, 61.8, 78.6, 100];
   let nearestBelow = 0, nearestAbove = 100;
   for(const lv of levelArr) {
@@ -275,15 +270,13 @@ function calcVegasTunnel(closes) {
   const lower = ema144[last];
   const mid   = (upper+lower)/2;
   const e12   = ema12[last];
-  // Tunnel width as % of price
   const tunnelWidth = Math.abs(upper-lower)/mid*100;
   return { ema144: ema144[last], ema169: ema169[last], ema12: e12, price, upper: Math.max(upper,lower), lower: Math.min(upper,lower), mid, tunnelWidth };
 }
 
 function calcElliottWave(closes, highs, lows) {
   const len = closes.length;
-  // Find significant swing points using a simple ZigZag approach
-  const threshold = 0.03; // 3% swing
+  const threshold = 0.03;
   const swings = [];
   let lastSwingPrice = closes[0];
   let lastSwingIdx = 0;
@@ -306,14 +299,11 @@ function calcElliottWave(closes, highs, lows) {
   swings.push({ idx: len-1, price: closes[len-1], type: direction===1?'high':'low' });
 
   const price = closes[len-1];
-  // Try to identify wave position from last 5 swings
   if(swings.length < 5) return { wave: '?', phase: 'neutral', desc: '数据不足，无法识别波浪', confidence: 'low' };
 
   const last5 = swings.slice(-5);
   const prices = last5.map(s=>s.price);
 
-  // Impulse wave check (推动浪): alternating low-high-low-high-low or high-low-high-low-high
-  // Check uptrend impulse: lows ascending, highs ascending
   const isUpImpulse = last5[0].price < last5[2].price && last5[2].price < last5[4].price &&
                       last5[1].price < last5[3].price;
   const isDownImpulse = last5[0].price > last5[2].price && last5[2].price > last5[4].price &&
@@ -326,14 +316,11 @@ function calcElliottWave(closes, highs, lows) {
   let wave = '?', phase = 'neutral', desc = '', confidence = 'medium';
 
   if(isUpImpulse) {
-    // In uptrend, determine current wave
     if(lastSwing.type === 'low') {
-      // Just finished a corrective wave, likely at wave 4 or about to start wave 5
       wave = '⑤波推进中'; phase = 'bull';
       desc = `上涨推动浪结构完整（①②③④已确认），当前可能处于第⑤浪推升阶段。第⑤浪目标：${fmtPrice(last5[3].price + (last5[3].price - last5[2].price))}`;
       confidence = 'medium';
     } else {
-      // At a high, might be wave 3 or 5 top
       const wave3Height = last5[3].price - last5[2].price;
       const wave1Height = last5[1].price - last5[0].price;
       if(wave3Height > wave1Height * 1.618) {
@@ -357,7 +344,6 @@ function calcElliottWave(closes, highs, lows) {
       confidence = 'medium';
     }
   } else {
-    // ABC correction
     const isABC = swings.length >= 3;
     if(isABC) {
       const netMove = price - last5[0].price;
@@ -381,7 +367,6 @@ function calcElliottWave(closes, highs, lows) {
 }
 
 function signalMeta(type, value, desc) {
-  // type: 'bull' | 'bear' | 'neutral'
   return { type, value, desc };
 }
 
@@ -397,7 +382,6 @@ function analyzeAll(klines) {
 
   const indicators = {};
 
-  // ─ MACD ─
   const { macdLine, signal, histogram } = calcMACD(closes);
   const macdVal = macdLine[last];
   const sigVal = signal[last];
@@ -409,7 +393,6 @@ function analyzeAll(klines) {
   else if (macdVal < sigVal && histVal < histPrev) macdType = 'bear';
   indicators.macd = { ...signalMeta(macdType, fmt(macdVal,4), macdDesc), bar: macdType==='bull'?75:macdType==='bear'?25:50, group:'trend' };
 
-  // ─ EMA Cross ─
   const ema20 = calcEMA(closes, 20);
   const ema50 = calcEMA(closes, 50);
   const ema200 = calcEMA(closes, Math.min(200, closes.length));
@@ -422,14 +405,12 @@ function analyzeAll(klines) {
   else { emaType = 'bear'; emaBar = 35; emaDesc = `价格在EMA50下方`; }
   indicators.ema = { ...signalMeta(emaType, `${fmtPrice(e20)}`, emaDesc), bar: emaBar, group:'trend' };
 
-  // ─ EMA200 (Golden/Death Cross) ─
   const e200Prev = ema200[last-1] || e200, e50Prev = ema50[last-1] || e50;
   let crossType = 'neutral', crossBar = 50, crossDesc = `EMA200: ${fmtPrice(e200)}`;
   if (price > e200) { crossType = 'bull'; crossBar = 70; crossDesc = `价格上方黄金区域`; }
   else { crossType = 'bear'; crossBar = 30; crossDesc = `价格跌破200均线`; }
   indicators.ema200 = { ...signalMeta(crossType, fmtPrice(e200), crossDesc), bar: crossBar, group:'trend' };
 
-  // ─ Bollinger Bands ─
   const boll = calcBollinger(closes, Math.min(20, closes.length));
   const bollLast = boll[last];
   let bollType = 'neutral', bollBar = 50, bollDesc = '数据不足';
@@ -447,7 +428,6 @@ function analyzeAll(klines) {
     indicators.boll = { ...signalMeta('neutral', 'N/A', '数据不足'), bar: 50, group:'trend' };
   }
 
-  // ─ RSI ─
   const rsis = calcRSI(closes);
   const rsi = rsis[rsis.length-1];
   const rsiPrev = rsis[rsis.length-2];
@@ -460,7 +440,6 @@ function analyzeAll(klines) {
   else { rsiType = 'bear'; rsiBar = 38; rsiDesc = `弱势区间`; }
   indicators.rsi = { ...signalMeta(rsiType, rsi.toFixed(1), rsiDesc), bar: Math.min(100, Math.max(0, rsi)), group:'momentum' };
 
-  // ─ KDJ ─
   const kdjArr = calcKDJ(highs, lows, closes);
   const { K, D, J } = kdjArr[kdjArr.length-1];
   const kdjPrev = kdjArr[kdjArr.length-2];
@@ -473,7 +452,6 @@ function analyzeAll(klines) {
   else { kdjType = 'bear'; kdjBar = 40; kdjDesc = `K线在D线下方`; }
   indicators.kdj = { ...signalMeta(kdjType, `K${K.toFixed(0)}`, kdjDesc), bar: kdjBar, group:'momentum' };
 
-  // ─ Stochastic RSI ─
   const { k: srsiK, d: srsiD } = calcStochRSI(closes);
   let srsiType = 'neutral', srsiBar = 50, srsiDesc = `StochRSI K:${srsiK?.toFixed(1)||'--'}`;
   if (srsiK !== null) {
@@ -485,7 +463,6 @@ function analyzeAll(klines) {
   }
   indicators.stochrsi = { ...signalMeta(srsiType, srsiK?.toFixed(1)||'--', srsiDesc), bar: srsiBar, group:'momentum' };
 
-  // ─ Williams %R ─
   const wr = calcWilliamsR(highs, lows, closes);
   let wrType = 'neutral', wrBar = 50, wrDesc = `WR: ${wr.toFixed(1)}`;
   if (wr < -80) { wrType = 'bull'; wrBar = 80; wrDesc = `超卖区间 (${wr.toFixed(1)})`; }
@@ -493,7 +470,6 @@ function analyzeAll(klines) {
   else { wrBar = Math.abs(wr); wrDesc = `WR: ${wr.toFixed(1)}`; }
   indicators.williamsr = { ...signalMeta(wrType, wr.toFixed(1), wrDesc), bar: wrBar, group:'momentum' };
 
-  // ─ CCI ─
   const cci = calcCCI(highs, lows, closes);
   let cciType = 'neutral', cciBar = 50, cciDesc = `CCI: ${cci.toFixed(0)}`;
   if (cci < -100) { cciType = 'bull'; cciBar = 75; cciDesc = `超卖 (${cci.toFixed(0)})`; }
@@ -502,7 +478,6 @@ function analyzeAll(klines) {
   else { cciType = 'bear'; cciBar = 42; cciDesc = `负向区间`; }
   indicators.cci = { ...signalMeta(cciType, cci.toFixed(0), cciDesc), bar: cciBar, group:'momentum' };
 
-  // ─ OBV ─
   const obv = calcOBV(closes, volumes);
   const obvSMA = calcSMA(obv, 20);
   const obvLast = obv[last];
@@ -513,7 +488,6 @@ function analyzeAll(klines) {
   else { obvDesc = `OBV：${fmt(obvLast,0)}`; }
   indicators.obv = { ...signalMeta(obvType, fmt(obvLast,0), obvDesc), bar: obvBar, group:'volume' };
 
-  // ─ Volume vs MA ─
   const volSMA20 = calcVolumeSMA(volumes, 20);
   const volRatio = volumes[last] / volSMA20[last];
   let volType = 'neutral', volBar = 50, volDesc = `成交量：${fmt(volumes[last],2)}`;
@@ -523,7 +497,6 @@ function analyzeAll(klines) {
   else { volBar = Math.min(100, volRatio*50); }
   indicators.volume = { ...signalMeta(volType, `×${volRatio.toFixed(2)}`, volDesc), bar: volBar, group:'volume' };
 
-  // ─ CMF ─
   const cmf = calcCMF(highs, lows, closes, volumes);
   const cmfLast = cmf[last];
   let cmfType = 'neutral', cmfBar = 50, cmfDesc = `CMF: ${cmfLast?.toFixed(3)||'--'}`;
@@ -535,7 +508,6 @@ function analyzeAll(klines) {
   }
   indicators.cmf = { ...signalMeta(cmfType, cmfLast?.toFixed(3)||'--', cmfDesc), bar: cmfBar, group:'volume' };
 
-  // ─ VWAP ─
   const vwap = calcVWAP(highs, lows, closes, volumes);
   const vwapLast = vwap[last];
   let vwapType = 'neutral', vwapBar = 50, vwapDesc = `VWAP: ${fmtPrice(vwapLast)}`;
@@ -543,7 +515,6 @@ function analyzeAll(klines) {
   else if (price < vwapLast * 0.99) { vwapType = 'bear'; vwapBar = 32; vwapDesc = `价格在VWAP下方`; }
   indicators.vwap = { ...signalMeta(vwapType, fmtPrice(vwapLast), vwapDesc), bar: vwapBar, group:'volume' };
 
-  // ─ ATR ─
   const { atr } = calcATR(highs, lows, closes);
   const atrPct = atr / price * 100;
   let atrType = 'neutral', atrBar = 50, atrDesc = `ATR: ${fmtPrice(atr)} (${atrPct.toFixed(2)}%)`;
@@ -552,7 +523,6 @@ function analyzeAll(klines) {
   else { atrBar = Math.min(80, atrPct * 20); }
   indicators.atr = { ...signalMeta(atrType, `${atrPct.toFixed(2)}%`, atrDesc), bar: atrBar, group:'volatility' };
 
-  // ─ Bollinger Width ─
   const bw_val = bw || 0;
   let bwType = 'neutral', bwBar = 50, bwDesc = `带宽: ${bw_val.toFixed(2)}%`;
   if (bw_val < 3) { bwDesc = `带宽极窄，蓄势待发`; bwBar = 50; }
@@ -560,7 +530,6 @@ function analyzeAll(klines) {
   else { bwBar = Math.min(80, bw_val * 6); }
   indicators.bw = { ...signalMeta(bwType, `${bw_val.toFixed(2)}%`, bwDesc), bar: bwBar, group:'volatility' };
 
-  // ─ Donchian Channel ─
   const dcPeriod = 20;
   const dcHigh = Math.max(...highs.slice(last - dcPeriod + 1, last + 1));
   const dcLow  = Math.min(...lows.slice(last - dcPeriod + 1, last + 1));
@@ -572,7 +541,6 @@ function analyzeAll(klines) {
   else { dcType = 'bear'; dcDesc = `通道中下区间`; }
   indicators.donchian = { ...signalMeta(dcType, `${(dcPct*100).toFixed(0)}%`, dcDesc), bar: dcBar, group:'volatility' };
 
-  // ─ Ichimoku ─
   const ichi = calcIchimoku(highs, lows, closes);
   const aboveCloud = ichi.price > Math.max(ichi.senkouA, ichi.senkouB);
   const belowCloud = ichi.price < Math.min(ichi.senkouA, ichi.senkouB);
@@ -586,7 +554,6 @@ function analyzeAll(klines) {
   else                       { ichiType = 'neutral'; ichiBar = 50; ichiDesc = `价格在云层内（震荡区间）`; }
   indicators.ichimoku = { ...signalMeta(ichiType, aboveCloud?'云上':belowCloud?'云下':'云中', ichiDesc), bar: ichiBar, group:'supp' };
 
-  // ─ ADX ─
   const { adx, pdi, mdi } = calcADX(highs, lows, closes);
   let adxType = 'neutral', adxBar = 50, adxDesc = `ADX:${adx.toFixed(1)} +DI:${pdi.toFixed(1)} -DI:${mdi.toFixed(1)}`;
   if (adx > 25 && pdi > mdi) { adxType = 'bull'; adxBar = 75; adxDesc = `趋势强劲，多头主导 (ADX:${adx.toFixed(1)})`; }
@@ -595,7 +562,6 @@ function analyzeAll(klines) {
   else { adxBar = Math.min(80, adx*2); }
   indicators.adx = { ...signalMeta(adxType, adx.toFixed(1), adxDesc), bar: Math.min(100,adxBar), group:'supp' };
 
-  // ─ MFI ─
   const mfi = calcMFI(highs, lows, closes, volumes);
   let mfiType = 'neutral', mfiBar = mfi, mfiDesc = `MFI: ${mfi.toFixed(1)}`;
   if (mfi < 20) { mfiType = 'bull'; mfiDesc = `资金超卖区间 (${mfi.toFixed(1)})`; }
@@ -604,7 +570,6 @@ function analyzeAll(klines) {
   else { mfiType = 'bear'; mfiDesc = `资金净流出 (${mfi.toFixed(1)})`; }
   indicators.mfi = { ...signalMeta(mfiType, mfi.toFixed(1), mfiDesc), bar: Math.min(100,Math.max(0,mfi)), group:'supp' };
 
-  // ─ ROC ─
   const roc = calcROC(closes, 12);
   let rocType = 'neutral', rocBar = 50, rocDesc = `ROC(12): ${roc.toFixed(2)}%`;
   if (roc > 5) { rocType = 'bull'; rocBar = 78; rocDesc = `动能强劲上升 (${roc.toFixed(2)}%)`; }
@@ -614,7 +579,6 @@ function analyzeAll(klines) {
   else { rocDesc = `动能趋近零轴 (${roc.toFixed(2)}%)`; }
   indicators.roc = { ...signalMeta(rocType, `${roc.toFixed(2)}%`, rocDesc), bar: rocBar, group:'supp' };
 
-  // ─ MA System (5/10/20/60/120) ─
   const ma5   = calcSMA(closes, 5);
   const ma10  = calcSMA(closes, 10);
   const ma20  = calcSMA(closes, 20);
@@ -622,30 +586,24 @@ function analyzeAll(klines) {
   const ma120 = calcSMA(closes, 120);
   const m5=ma5[last], m10=ma10[last], m20=ma20[last], m60=ma60[last], m120=ma120[last];
 
-  // MA5 vs MA10
   let ma510Type = m5>m10?'bull':'bear';
   indicators.ma510 = { ...signalMeta(ma510Type, `${fmtPrice(m5)}`, m5>m10?'MA5上穿MA10 金叉':'MA5下穿MA10 死叉'), bar: m5>m10?68:32, group:'masys' };
 
-  // MA20 vs MA60
   let ma2060Type = m20>m60?'bull':'bear';
   indicators.ma2060 = { ...signalMeta(ma2060Type, `${fmtPrice(m20)}`, m20>m60?'MA20上穿MA60 中期金叉':'MA20下穿MA60 中期死叉'), bar: m20>m60?72:28, group:'masys' };
 
-  // MA60 vs MA120
   let ma60120Type = m60>m120?'bull':'bear';
   indicators.ma60120 = { ...signalMeta(ma60120Type, `${fmtPrice(m60)}`, m60>m120?'MA60上穿MA120 长期金叉':'MA60下穿MA120 长期死叉'), bar: m60>m120?76:24, group:'masys' };
 
-  // Full MA arrangement
   const fullBull = price>m5 && m5>m10 && m10>m20 && m20>m60 && m60>m120;
   const fullBear = price<m5 && m5<m10 && m10<m20 && m20<m60 && m60<m120;
   let maArrangeType = fullBull?'bull':fullBear?'bear':'neutral';
   let maArrangeDesc = fullBull?'五线多头完美排列，趋势极强':fullBear?'五线空头完美排列，趋势极弱':'均线排列混乱，处于震荡整理';
   indicators.maArrange = { ...signalMeta(maArrangeType, fullBull?'多排':fullBear?'空排':'混乱', maArrangeDesc), bar: fullBull?90:fullBear?10:50, group:'masys' };
 
-  // Price vs MA120 (long-term trend)
   let ma120Type = price>m120?'bull':'bear';
   indicators.ma120 = { ...signalMeta(ma120Type, fmtPrice(m120), price>m120?'价格站上MA120长期均线':'价格跌破MA120长期均线'), bar: price>m120?70:30, group:'masys' };
 
-  // Vegas Tunnel
   const vegas = calcVegasTunnel(closes);
   const vegasBull = price > vegas.upper;
   const vegasBear = price < vegas.lower;
@@ -658,13 +616,8 @@ function analyzeAll(klines) {
   const ema12CrossDesc = vegas.ema12 > vegas.upper ? 'EMA12突破通道，趋势加速' : vegas.ema12 < vegas.lower ? 'EMA12跌破通道，下跌加速' : 'EMA12在通道内，方向待定';
   indicators.vegasEma12 = { ...signalMeta(ema12Cross, fmtPrice(vegas.ema12), ema12CrossDesc), bar: ema12Cross==='bull'?75:ema12Cross==='bear'?25:50, group:'vegas' };
 
-  // Elliott Wave
   const elliott = calcElliottWave(closes, highs, lows);
 
-
-  // ── 新增交易系统指标 ─────────────────────────────────────────────────────────
-
-  // 抛物线SAR
   try {
     const { sar, bull: sarBull } = calcParabolicSAR(highs, lows);
     const sarVal = sar[last];
@@ -675,7 +628,6 @@ function analyzeAll(klines) {
     indicators.sar = { ...signalMeta(sarType, fmtPrice(sarVal), sarDesc), bar: sarBull?72:28, group:'trend' };
   } catch(e) {}
 
-  // Aroon
   try {
     const { aroonUp, aroonDown } = calcAroon(highs, lows);
     const aUp = aroonUp[last], aDown = aroonDown[last];
@@ -689,7 +641,6 @@ function analyzeAll(klines) {
     indicators.aroon = { ...signalMeta(aroonType, aUp!=null?`${aUp.toFixed(0)}/${aDown.toFixed(0)}`:'--', aroonDesc), bar: aroonType==='bull'?70:aroonType==='bear'?30:50, group:'trend' };
   } catch(e) {}
 
-  // 肯特纳通道
   try {
     const keltner = calcKeltner(highs, lows, closes);
     const kelt = keltner[last];
@@ -703,7 +654,6 @@ function analyzeAll(klines) {
     indicators.keltner = { ...signalMeta(keltType, kelt?.upper?fmtPrice(kelt.upper):'--', keltDesc), bar: keltType==='bull'?68:keltType==='bear'?32:50, group:'volatility' };
   } catch(e) {}
 
-  // 顾比复合均线GMMA
   try {
     const gmma = calcGMMA(closes);
     let gmmaType = 'neutral', gmmaDesc = '';
@@ -721,7 +671,6 @@ function analyzeAll(klines) {
     indicators.gmma = { ...signalMeta(gmmaType, fmtPrice(gmma.shortAvg), gmmaDesc), bar: gmmaType==='bull'?72:28, group:'trend' };
   } catch(e) {}
 
-  // TD序列
   try {
     const td = calcTDSequential(closes);
     let tdType = 'neutral', tdDesc = '';
@@ -739,7 +688,6 @@ function analyzeAll(klines) {
     indicators.td = { ...signalMeta(tdType, `${Math.abs(td.lastCount)}/9`, tdDesc), bar: tdType==='bull'?68:tdType==='bear'?32:50, group:'trend' };
   } catch(e) {}
 
-  // 价格行为 PA (BOS/FVG/OB)
   try {
     const pa = calcPriceAction(highs, lows, closes);
     let paType = 'neutral', paDesc = '';
@@ -751,13 +699,11 @@ function analyzeAll(klines) {
     indicators.pa = { ...signalMeta(paType, pa.bos||(pa.fvg?'FVG':'OB')||'中性', paDesc), bar: paType==='bull'?70:paType==='bear'?30:50, group:'structure' };
   } catch(e) {}
 
-  // 威科夫理论
   try {
     const wyckoff = calcWyckoff(closes, volumes, highs, lows);
     indicators.wyckoff = { ...signalMeta(wyckoff.type, wyckoff.phase, wyckoff.desc), bar: wyckoff.type==='bull'?72:wyckoff.type==='bear'?28:50, group:'structure' };
   } catch(e) {}
 
-  // 唐奇安通道
   try {
     const donc = calcDonchian(highs, lows);
     const don = donc[last];
@@ -770,7 +716,6 @@ function analyzeAll(klines) {
     indicators.donchianPA = { ...signalMeta(donType, don?.upper?fmtPrice(don.upper):'--', donDesc), bar: donType==='bull'?72:donType==='bear'?28:50, group:'structure' };
   } catch(e) {}
 
-  // 锚定VWAP
   try {
     const avwapData = calcAnchoredVWAP(highs, lows, closes, volumes);
     const avwapVal = avwapData.avwap[last];
@@ -787,10 +732,6 @@ function analyzeAll(klines) {
   return { indicators, closes, highs, lows, volumes, price, ema20, ema50, ema200, fib: calcFibonacci(highs, lows, closes), vegas, elliott, m5, m10, m20, m60, m120 };
 }
 
-
-// ── 新增交易系统指标 ──────────────────────────────────────────────────────────
-
-// 抛物线SAR
 function calcParabolicSAR(highs, lows, step=0.02, max=0.2) {
   const n = highs.length;
   const sar = new Array(n).fill(0);
@@ -822,7 +763,6 @@ function calcParabolicSAR(highs, lows, step=0.02, max=0.2) {
   return { sar, bull };
 }
 
-// Aroon 指标
 function calcAroon(highs, lows, period=25) {
   const n = highs.length;
   const aroonUp = new Array(n).fill(null);
@@ -838,7 +778,6 @@ function calcAroon(highs, lows, period=25) {
   return { aroonUp, aroonDown };
 }
 
-// 肯特纳通道
 function calcKeltner(highs, lows, closes, emaPeriod=20, atrPeriod=10, mult=2) {
   const ema = calcEMA(closes, emaPeriod);
   const atr = calcATR(highs, lows, closes, atrPeriod);
@@ -849,10 +788,7 @@ function calcKeltner(highs, lows, closes, emaPeriod=20, atrPeriod=10, mult=2) {
   }));
 }
 
-// 顾比复合均线 GMMA
 function calcGMMA(closes) {
-  // 短期：3,5,8,10,12,15
-  // 长期：30,35,40,45,50,60
   const short = [3,5,8,10,12,15].map(p => calcEMA(closes, p));
   const long  = [30,35,40,45,50,60].map(p => calcEMA(closes, p));
   const last = closes.length - 1;
@@ -865,7 +801,6 @@ function calcGMMA(closes) {
   return { shortAvg, longAvg, shortSpread, longSpread, shortVals, longVals };
 }
 
-// TD Sequential 计数
 function calcTDSequential(closes) {
   const n = closes.length;
   const setup = new Array(n).fill(0);
@@ -885,12 +820,10 @@ function calcTDSequential(closes) {
   return { setup, lastCount: last, isExhausted: Math.abs(last) >= 9 };
 }
 
-// 价格行为 - BOS/MSS/FVG 检测
 function calcPriceAction(highs, lows, closes) {
   const n = closes.length;
   const last = n - 1;
 
-  // 找最近的摆动高点和低点
   let swingHighs = [], swingLows = [];
   for (let i = 2; i < n - 2; i++) {
     if (highs[i] > highs[i-1] && highs[i] > highs[i-2] && highs[i] > highs[i+1] && highs[i] > highs[i+2]) {
@@ -901,26 +834,22 @@ function calcPriceAction(highs, lows, closes) {
     }
   }
 
-  // 最近的摆动点
   const lastSwingHigh = swingHighs[swingHighs.length - 1];
   const lastSwingLow  = swingLows[swingLows.length - 1];
   const price = closes[last];
 
-  // BOS 检测 (突破结构)
   let bos = null;
   if (lastSwingHigh && price > lastSwingHigh.price) bos = 'bull';
   if (lastSwingLow  && price < lastSwingLow.price)  bos = 'bear';
 
-  // FVG 检测 (公平价值缺口)
   let fvg = null;
   if (last >= 2) {
     const gap = lows[last] - highs[last-2];
-    const gapDown = highs[last] - lows[last-2];  // 修정
+    const gapDown = highs[last] - lows[last-2];
     if (gap > 0) fvg = { type: 'bull', size: gap, price: (lows[last] + highs[last-2]) / 2 };
     else if (lows[last-2] - highs[last] > 0) fvg = { type: 'bear', size: lows[last-2] - highs[last], price: (lows[last-2] + highs[last]) / 2 };
   }
 
-  // 订单块 OB 检测
   let ob = null;
   for (let i = last - 1; i >= Math.max(0, last - 10); i--) {
     if (closes[i] < closes[i-1] && closes[last] > highs[i]) {
@@ -936,7 +865,6 @@ function calcPriceAction(highs, lows, closes) {
   return { bos, fvg, ob, lastSwingHigh, lastSwingLow };
 }
 
-// 威科夫阶段识别
 function calcWyckoff(closes, volumes, highs, lows) {
   const n = closes.length;
   const last = n - 1;
@@ -973,7 +901,6 @@ function calcWyckoff(closes, volumes, highs, lows) {
   return { phase, desc, type, pricePos, volRatio };
 }
 
-// 唐奇安通道
 function calcDonchian(highs, lows, period=20) {
   const n = highs.length;
   return highs.map((_, i) => {
@@ -986,17 +913,14 @@ function calcDonchian(highs, lows, period=20) {
   });
 }
 
-// 锚定VWAP (从近期低点/高点锚定)
 function calcAnchoredVWAP(highs, lows, closes, volumes) {
   const n = closes.length;
   const lookback = Math.min(50, n);
-  // 找近期最低点作为锚点
   let anchorIdx = n - lookback;
   let minLow = lows[anchorIdx];
   for (let i = anchorIdx; i < n; i++) {
     if (lows[i] < minLow) { minLow = lows[i]; anchorIdx = i; }
   }
-  // 从锚点计算VWAP
   let cumTP = 0, cumVol = 0;
   const avwap = new Array(n).fill(null);
   for (let i = anchorIdx; i < n; i++) {

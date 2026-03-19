@@ -1,9 +1,7 @@
-// ── 数据监控模块 ──────────────────────────────────────────────────────────────
-
 let _monTimer = null;
 let _monPriceMode = 'up';
 let _monAllTickers = [];
-let _validFuturesSymbols = null; // 币安官方 USDT 永续合约白名单
+let _validFuturesSymbols = null;
 
 async function monGetValidSymbols() {
   if (_validFuturesSymbols) return _validFuturesSymbols;
@@ -16,7 +14,6 @@ async function monGetValidSymbols() {
     const symbols = (data.symbols || [])
       .filter(s => s.status === 'TRADING' && s.contractType === 'PERPETUAL' && s.quoteAsset === 'USDT')
       .map(s => s.symbol);
-    // 必须获取到合理数量才算成功，否则视为无效数据
     if (symbols.length > 50) {
       _validFuturesSymbols = new Set(symbols);
     }
@@ -24,12 +21,10 @@ async function monGetValidSymbols() {
   return _validFuturesSymbols;
 }
 
-// ── 初始化 ────────────────────────────────────────────────────────────────────
 async function loadMonitor(force = false) {
   const lastUpdate = document.getElementById('monLastUpdate');
   if (lastUpdate) lastUpdate.textContent = '加载中...';
 
-  // 先获取官方合约白名单，再并行加载
   try {
     await monGetValidSymbols();
     await Promise.allSettled([
@@ -39,40 +34,35 @@ async function loadMonitor(force = false) {
       monLoadOI(),
       monLoadLSRatio(),
     ]);
-    // 黑马信号依赖价格数据，最后计算
     monCalcHorseSignals();
   } catch(e) {}
 
   const now = new Date();
   if (lastUpdate) lastUpdate.textContent = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')} 更新`;
 
-  // 定时刷新
   if (_monTimer) clearInterval(_monTimer);
   _monTimer = setInterval(() => loadMonitor(), 60000);
 }
 
-// ── 价格异动 ──────────────────────────────────────────────────────────────────
 async function monLoadPriceAlerts() {
   try {
-    // 使用服务器已有的 ticker 接口获取主流合约
-    // 先获取所有合约列表
+
     const exchangeR = await fetch(`${API}/api/proxy?u=${encodeURIComponent(BINANCE_F + '/fapi/v1/ticker/24hr')}`);
     const rawData = await exchangeR.json();
 
     if (!Array.isArray(rawData)) throw new Error('invalid ticker data');
 
-    // 过滤：只保留官方 TRADING 状态的 USDT 永续合约，同时过滤低流动性
     _monAllTickers = rawData
       .filter(t => {
         if (!t.symbol.endsWith('USDT')) return false;
-        if (t.symbol.includes('_')) return false; // 排除交割合约
-        if (!_validFuturesSymbols || !_validFuturesSymbols.has(t.symbol)) return false; // 不在官方白名单
+        if (t.symbol.includes('_')) return false;
+        if (!_validFuturesSymbols || !_validFuturesSymbols.has(t.symbol)) return false;
         const vol = parseFloat(t.quoteVolume);
         const price = parseFloat(t.lastPrice);
-        if (vol < 20000000) return false; // 成交量>2000万USDT
-        if (price <= 0) return false;     // 排除价格异常
+        if (vol < 20000000) return false;
+        if (price <= 0) return false;
         const count = parseInt(t.count || 0);
-        if (count < 1000) return false;   // 排除成交笔数过少（已下线）
+        if (count < 1000) return false;
         return true;
       })
       .map(t => ({
@@ -135,7 +125,6 @@ function monRenderPriceList() {
   }).join('');
 }
 
-// ── 资金费率排行 ──────────────────────────────────────────────────────────────
 async function monLoadFundingRate() {
   try {
     const r2 = await fetch(`${API}/api/proxy?u=${encodeURIComponent(BINANCE_F + '/fapi/v1/premiumIndex')}`);
@@ -178,7 +167,6 @@ async function monLoadFundingRate() {
   } catch(e) {}
 }
 
-// ── 大额清算 ──────────────────────────────────────────────────────────────────
 async function monLoadLiquidation() {
   try {
     const symbols = ['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT','DOGEUSDT','ADAUSDT','AVAXUSDT','LINKUSDT','DOTUSDT'];
@@ -227,7 +215,6 @@ async function monLoadLiquidation() {
   } catch(e) {}
 }
 
-// ── 持仓量异动 ────────────────────────────────────────────────────────────────
 async function monLoadOI() {
   try {
     const symbols = ['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT','DOGEUSDT','ADAUSDT','AVAXUSDT','LINKUSDT','DOTUSDT','MATICUSDT','LTCUSDT'];
@@ -281,7 +268,6 @@ async function monLoadOI() {
   } catch(e) {}
 }
 
-// ── 多空比监控 ────────────────────────────────────────────────────────────────
 async function monLoadLSRatio() {
   try {
     const symbols = ['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT','DOGEUSDT'];
@@ -328,7 +314,6 @@ async function monLoadLSRatio() {
   } catch(e) {}
 }
 
-// ── 黑马信号 ──────────────────────────────────────────────────────────────────
 function monCalcHorseSignals() {
   const listEl = document.getElementById('monHorseList');
   const badge  = document.getElementById('monHorseBadge');
@@ -339,13 +324,9 @@ function monCalcHorseSignals() {
     return;
   }
 
-  // 计算均量（用成交量排名位置估算）
   const sorted = [..._monAllTickers].sort((a,b) => b.volume - a.volume);
   const medianVol = sorted[Math.floor(sorted.length / 2)].volume;
-
-  // 计算中位数成交量（用于判断放量）
   const sortedByVol = [..._monAllTickers].sort((a,b) => b.volume - a.volume);
-  // 取前50名的中位数作为基准，更准确
   const top50 = sortedByVol.slice(0, 50);
   const baseVol = top50[Math.floor(top50.length / 2)].volume;
 
@@ -353,28 +334,23 @@ function monCalcHorseSignals() {
     let score = 0;
     const signals = [];
 
-    // 1. 价格涨幅（只算正向黑马）
     if (t.change > 15)      { score += 5; signals.push('🚀飙升' + t.change.toFixed(1) + '%'); }
     else if (t.change > 10) { score += 4; signals.push('🚀涨幅' + t.change.toFixed(1) + '%'); }
     else if (t.change > 5)  { score += 2; signals.push('📈涨幅' + t.change.toFixed(1) + '%'); }
     else if (t.change > 3)  { score += 1; signals.push('↑涨幅' + t.change.toFixed(1) + '%'); }
-    else if (t.change <= 0) { score -= 3; } // 下跌的不算黑马
+    else if (t.change <= 0) { score -= 3; }
 
-    // 2. 成交量相对于同量级币种的放大倍数
     const volRatio = t.volume / baseVol;
     if (volRatio > 5)       { score += 4; signals.push('🔥爆量' + volRatio.toFixed(1) + 'x'); }
     else if (volRatio > 3)  { score += 3; signals.push('📊放量' + volRatio.toFixed(1) + 'x'); }
     else if (volRatio > 2)  { score += 2; signals.push('量能' + volRatio.toFixed(1) + 'x'); }
     else if (volRatio > 1.5){ score += 1; }
 
-    // 3. 排除超大币种（非黑马）
     const majorCoins = ['BTC','ETH','BNB','XRP','SOL','USDC','BUSD'];
     if (majorCoins.includes(t.symbol)) score -= 5;
 
-    // 4. 涨幅+量能共振（最强信号）
     if (t.change > 5 && volRatio > 2) { score += 3; signals.push('⚡价量共振'); }
 
-    // 5. 价格接近当日高点（突破形态）
     const range = t.high - t.low;
     if (range > 0) {
       const highPct = (t.price - t.low) / range * 100;
@@ -385,7 +361,6 @@ function monCalcHorseSignals() {
     return { ...t, score, signals, volRatio };
   });
 
-  // 只取评分>=4且上涨的币种
   const horses = scores
     .filter(t => t.score >= 4 && t.change > 0)
     .sort((a,b) => b.score - a.score)
