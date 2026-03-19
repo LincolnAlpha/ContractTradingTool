@@ -8,16 +8,19 @@ let _validFuturesSymbols = null; // 币安官方 USDT 永续合约白名单
 async function monGetValidSymbols() {
   if (_validFuturesSymbols) return _validFuturesSymbols;
   try {
-    const r = await fetch(`${API}/api/proxy?u=${encodeURIComponent(BINANCE_F + '/fapi/v1/exchangeInfo')}`);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const r = await fetch(`${API}/api/proxy?u=${encodeURIComponent(BINANCE_F + '/fapi/v1/exchangeInfo')}`, { signal: ctrl.signal });
+    clearTimeout(timer);
     const data = await r.json();
-    _validFuturesSymbols = new Set(
-      (data.symbols || [])
-        .filter(s => s.status === 'TRADING' && s.contractType === 'PERPETUAL' && s.quoteAsset === 'USDT')
-        .map(s => s.symbol)
-    );
-  } catch(e) {
-    _validFuturesSymbols = null;
-  }
+    const symbols = (data.symbols || [])
+      .filter(s => s.status === 'TRADING' && s.contractType === 'PERPETUAL' && s.quoteAsset === 'USDT')
+      .map(s => s.symbol);
+    // 必须获取到合理数量才算成功，否则视为无效数据
+    if (symbols.length > 50) {
+      _validFuturesSymbols = new Set(symbols);
+    }
+  } catch(e) {}
   return _validFuturesSymbols;
 }
 
@@ -63,7 +66,7 @@ async function monLoadPriceAlerts() {
       .filter(t => {
         if (!t.symbol.endsWith('USDT')) return false;
         if (t.symbol.includes('_')) return false; // 排除交割合约
-        if (_validFuturesSymbols && !_validFuturesSymbols.has(t.symbol)) return false; // 不在官方白名单
+        if (!_validFuturesSymbols || !_validFuturesSymbols.has(t.symbol)) return false; // 不在官方白名单
         const vol = parseFloat(t.quoteVolume);
         const price = parseFloat(t.lastPrice);
         if (vol < 20000000) return false; // 成交量>2000万USDT
@@ -142,7 +145,7 @@ async function monLoadFundingRate() {
       .filter(d =>
         d.symbol.endsWith('USDT') &&
         !d.symbol.includes('_') &&
-        (!_validFuturesSymbols || _validFuturesSymbols.has(d.symbol))
+        (_validFuturesSymbols && _validFuturesSymbols.has(d.symbol))
       )
       .map(d => ({
         symbol: d.symbol.replace('USDT',''),
