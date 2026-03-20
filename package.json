@@ -13,6 +13,7 @@
     "serve": "http-server . -p 5173",
     "dev": "nodemon server.js",
     "test": "node --test",
+    "test:cov": "c8 -r text -r lcov npm test",
     "lint": "echo \"Lint not configured yet\""
   },
   "dependencies": {
@@ -21,6 +22,7 @@
     "node-fetch": "^2.7.0"
   },
   "devDependencies": {
+    "c8": "^10.1.3",
     "http-server": "^14.1.1",
     "nodemon": "^3.1.10",
     "supertest": "^7.1.4"

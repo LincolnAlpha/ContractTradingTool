@@ -71,6 +71,14 @@ npm run serve
 npm test
 ```
 
+### 覆盖率报告
+
+```bash
+npm run test:cov
+```
+
+执行后会输出终端覆盖率摘要，并生成 `coverage/lcov-report` 可视化报告。
+
 ### 当前已覆盖的测试点
 
 - `services/cache.js`
@@ -88,6 +96,7 @@ npm test
 - `routes/market.js`
   - `ticker` 在 Binance 失败时可回退到 OKX
   - `depth` 在上游全部失败时返回空深度兜底
+  - `klines` 在 Binance 失败时可回退到 OKX，并归一化为标准 K 线结构
 - `routes/futures.js`
   - `funding/ls/force` 在上游失败时返回空数组降级
   - `oi` 在上游失败时返回空对象降级
@@ -95,6 +104,9 @@ npm test
   - `cg` 对非法 coin 参数返回 `400`
   - `cg` 支持别名映射（例如 `btc -> bitcoin`）
   - `fg` 上游异常时返回 `502`
+- `server.js`（入口层集成）
+  - `/ping` 健康检查可用
+  - `/api` 路由已正确挂载（通过 `/api/proxy` 缺参 `400` 验证）
 - `services/fetch.js`
   - `fetchJSON` 缓存命中（同 URL TTL 内仅请求一次）
   - 上游非 `ok` 响应时正确抛出 HTTP 错误

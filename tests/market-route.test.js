@@ -78,3 +78,33 @@ test('GET /api/depth should return empty depth when all upstream fail', async ()
   }
 });
 
+test('GET /api/klines should fallback to OKX and normalize shape', async () => {
+  const fetchJSONImpl = async (url) => {
+    if (url.includes('/api/v3/klines')) throw new Error('binance klines down');
+    if (url.includes('okx.com/api/v5/market/candles')) {
+      return {
+        data: [
+          // OKX 返回通常是倒序，这里模拟两条
+          ['2000', '11', '12', '10', '11.5', '100', '0', '1000'],
+          ['1000', '10', '11', '9', '10.5', '90', '0', '900']
+        ]
+      };
+    }
+    throw new Error('unexpected url');
+  };
+
+  const ctx = buildMarketApp({ fetchJSONImpl });
+  try {
+    const res = await request(ctx.app).get('/api/klines?symbol=BTCUSDT&interval=4h&limit=2').expect(200);
+    assert.equal(Array.isArray(res.body), true);
+    assert.equal(res.body.length, 2);
+    // 应该被 reverse 后按时间升序（1000 在前）
+    assert.equal(res.body[0][0], 1000);
+    assert.equal(res.body[1][0], 2000);
+    // 归一化后的 Binance 样式数组长度固定 12
+    assert.equal(res.body[0].length, 12);
+  } finally {
+    ctx.restore();
+  }
+});
+
