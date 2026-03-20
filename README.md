@@ -32,6 +32,12 @@ npm install
 npm start
 ```
 
+首次启动前建议先复制环境变量模板：
+
+```bash
+cp .env.example .env
+```
+
 默认端口是 `3000`，可先验证：
 
 - `http://localhost:3000/ping`
@@ -142,19 +148,41 @@ routesLayer --> browserClient
 └─ README.md
 ```
 
-## 必改配置（否则部分功能不可用）
+## 环境变量配置（推荐，不再手改源码）
 
-- `routes/proxy.js`
-  - `ALLOWED` 默认是占位值 `['']`
-  - 需要改成真实白名单域名，例如：`api.binance.com`、`fapi.binance.com`
+项目已支持 `.env` 配置。可从 `.env.example` 复制一份：
 
-- `routes/news.js`
-  - `RSS_SOURCES` 默认是空 URL
-  - 需要补真实 RSS 地址
+```bash
+cp .env.example .env
+```
 
-- `routes/live.js`
-  - 抓取 URL 是占位空字符串
-  - 需要补真实页面 URL 和接口 URL
+关键变量说明：
+
+- `PORT`
+  - 后端监听端口，默认 `3000`
+
+- `PROXY_ALLOWED_DOMAINS`
+  - `/api/proxy` 允许访问的域名白名单，逗号分隔
+  - 示例：`api.binance.com,fapi.binance.com,api.coingecko.com`
+
+- `NEWS_RSS_SOURCES`
+  - 新闻源 JSON 字符串（数组）
+  - 示例：`[{"url":"https://www.coindesk.com/arc/outboundfeeds/rss/","name":"CoinDesk"}]`
+
+- `LIVE_PAGE_URL` / `LIVE_API_URL`
+  - 直播页抓取与接口地址（当前直播模块必须配置）
+
+- `LIVE_REFERER` / `LIVE_ORIGIN`
+  - 直播请求头辅助字段，部分站点会校验
+
+> 若不配置这些变量，`proxy/news/live` 的部分能力会降级或不可用，这是预期保护行为。
+
+## 上线前检查清单
+
+- 已创建 `.env` 并填好 `PROXY_ALLOWED_DOMAINS`
+- `NEWS_RSS_SOURCES` 可被 `JSON.parse` 正常解析
+- `LIVE_PAGE_URL` 和 `LIVE_API_URL` 可访问且返回结构稳定
+- 前端 `js/config.js` 的 `API` 地址与后端端口一致
 
 ## 已知问题与限制
 
