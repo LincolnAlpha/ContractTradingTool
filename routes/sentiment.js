@@ -1,3 +1,4 @@
+// 情绪与社区数据路由：恐惧贪婪、CoinGecko 单币信息、趋势榜、全局市场。
 const express = require('express');
 const router = express.Router();
 const { fetchJSON } = require('../services/fetch');

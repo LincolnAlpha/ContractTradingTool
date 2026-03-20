@@ -1,3 +1,4 @@
+// 合约衍生数据路由：资金费率、持仓量、多空比、强平订单。
 const express = require('express');
 const router = express.Router();
 const { fetch, UA } = require('../services/fetch');

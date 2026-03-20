@@ -1,3 +1,5 @@
+// 拉取可交易币种列表。
+// 注意：当远端接口不可用时会自动降级到内置热门币种，确保页面可用。
 async function loadSymbolList() {
   try {
     const r = await fetch(`${API}/api/proxy?u=${encodeURIComponent('')}`);
@@ -92,6 +94,7 @@ function closeSymbolDropdown() {
   inp.placeholder = base + '/USDT';
 }
 
+// K 线是整个分析流程的核心输入数据（后续指标全部基于它计算）。
 async function getKlines(symbol, interval, limit=300) {
   const r = await fetchTimeout(`${API}/api/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`, 10000);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);

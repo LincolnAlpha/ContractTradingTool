@@ -1,3 +1,4 @@
+// calc.js：合约风险计算器（爆仓价、仓位风险、止盈止损、建议）。
 let _calcCoin     = 'BTC';
 let _calcDir      = 'long';
 let _calcMode     = 'cross';
@@ -88,6 +89,10 @@ async function calcFetchPrice() {
   } catch(e) {}
 }
 
+// 计算器核心函数（输入 -> 处理 -> 输出）：
+// 输入：保证金、杠杆、方向、模式、入场价、账户余额
+// 处理：计算仓位价值、爆仓价、风险等级、SL/TP 与建议
+// 输出：刷新页面上所有风险指标与提示
 function calcUpdate() {
   const margin    = parseFloat(document.getElementById('calcMargin')?.value || 0);
   const lev       = parseInt(document.getElementById('calcLevSlider')?.value || 10);

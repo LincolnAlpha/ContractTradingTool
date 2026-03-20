@@ -1,4 +1,5 @@
 
+// 把情绪数据（恐惧贪婪、资金费率、多空比）+ 技术面信号合成为一个“新闻情绪标签”。
 function calcNewsSentiment(indicators, fgData, fundingData, lsData) {
   const labelEl = document.getElementById('newsSentLabel');
   const descEl  = document.getElementById('newsSentDesc');
@@ -64,6 +65,10 @@ function setElHTML(id, val) { setEl(id, val, 'innerHTML'); }
 function setElClass(id, val) { const el = document.getElementById(id); if(el) el.className = val; }
 
 
+// 分析页主流程（输入 -> 计算 -> 输出）：
+// 1) 输入：并行获取 K 线、Ticker、资金费率、持仓、多空比等数据
+// 2) 计算：调用 analyzeAll 生成完整指标信号
+// 3) 输出：把各模块渲染到页面并缓存结果供 event/calc 页面复用
 async function loadAll(silent=false) {
   const symbol = document.getElementById('symbolSelect').value;
   const _base = symbol.replace('USDT','');
@@ -229,6 +234,7 @@ async function loadAll(silent=false) {
   }
 }
 
+// 保存最近一次分析结果，其他页面（事件/计算器）会复用这份数据。
 function storeAnalysisData(data) {
   _lastAnalysisData = data;
   window._lastFrValue = data.frValue;

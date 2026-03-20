@@ -1,3 +1,4 @@
+// 直播数据路由：从目标站点抓取在线直播间列表并短期缓存。
 const express = require('express');
 const router = express.Router();
 const { fetch } = require('../services/fetch');
@@ -5,6 +6,7 @@ const { cGet, cSet } = require('../services/cache');
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36';
 
+// 当前为占位抓取逻辑：需要补齐真实页面 URL 与接口 URL。
 async function getLiveData() {
   const pageRes = await fetch('', {
     headers: { 'User-Agent': UA, 'Accept': 'text/html' }

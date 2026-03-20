@@ -1,3 +1,4 @@
+// 进程内最小 TTL 缓存（重启即丢失），适合低复杂度接口缓存。
 const cache = new Map();
 
 function cGet(key) {

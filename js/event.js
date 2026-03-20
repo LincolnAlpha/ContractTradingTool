@@ -1,3 +1,4 @@
+// event.js：事件合约模拟页（本地账户、下单、结算、建议信号）。
 let _evCoin = 'BTC';
 let _evDuration = 10; // 分钟
 let _evKlines = null;
@@ -45,6 +46,7 @@ async function loadEventPage() {
   evStartSettleLoop();
 }
 
+// 拉取事件页行情数据并可选重算建议方向。
 async function evLoadMarketData(recalc = true) {
   const symbol = _evCoin + 'USDT';
   try {
@@ -90,6 +92,10 @@ function evRenderPrice() {
   }
 }
 
+// 事件建议打分（输入 -> 处理 -> 输出）：
+// 输入：analyzeAll 产出的 indicators + 当前时长（短线/中线）
+// 处理：不同指标按场景加权累计 score
+// 输出：方向（看涨/看跌/观望）+ 置信度 + 理由
 function evCalcSuggestion() {
   const dirEl    = document.getElementById('evDirection');
   const confEl   = document.getElementById('evConfidence');

@@ -1,3 +1,6 @@
+// indicators.js：项目的“计算引擎”。
+// 这里负责把 K 线转成一组可读的交易信号（bull/bear/neutral + 解释文本）。
+
 function calcEMA(data, period) {
   const k = 2 / (period + 1);
   let ema = [data[0]];
@@ -370,6 +373,10 @@ function signalMeta(type, value, desc) {
   return { type, value, desc };
 }
 
+// 核心聚合函数（输入 -> 处理 -> 输出）：
+// 输入：原始 K 线数组 [time, open, high, low, close, volume, ...]
+// 处理：逐类计算趋势/动量/波动/量能/结构指标，再统一转换成信号对象
+// 输出：用于页面渲染的 indicators + 关键序列数据（closes/highs/lows/volumes 等）
 function analyzeAll(klines) {
   if (!klines || klines.length < 5) throw new Error('该币种刚上线，暂无足够K线数据，请稍后再试');
   const opens   = klines.map(k => parseFloat(k[1]));
@@ -779,6 +786,8 @@ function calcAroon(highs, lows, period=25) {
 }
 
 function calcKeltner(highs, lows, closes, emaPeriod=20, atrPeriod=10, mult=2) {
+  // 说明：这里的 ATR 需要按“序列”参与通道计算（upper/lower 随时间变化）。
+  // 若后续重构该函数，注意保持 ATR 与 EMA 的时间索引对齐。
   const ema = calcEMA(closes, emaPeriod);
   const atr = calcATR(highs, lows, closes, atrPeriod);
   return closes.map((_, i) => ({

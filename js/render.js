@@ -1,3 +1,5 @@
+// render.js：只负责“把计算结果翻译成页面展示”。
+// 约定：计算逻辑尽量留在 indicators/analysis，这里专注渲染与文案组织。
 function makeSignalPill(type) {
   const map = {
     bull: ['signal-pill signal-bull', '▲ 利多'],
@@ -980,6 +982,10 @@ function generateSyntheticNews(coin, interval, indicators) {
   return items;
 }
 
+// 事件页渲染主函数：
+// 输入：analysis 阶段缓存的数据（指标、价格、情绪、结构信息）
+// 处理：计算事件维度权重并生成方向/置信度文案
+// 输出：更新事件页所有模块（价格、信号、策略、结论）
 function renderEventPage(data) {
   if (!data) return;
   const { indicators, closes, price, fib, vegas, elliott, ticker, fgVal, frValue, lsRatio, symbol } = data;

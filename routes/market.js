@@ -1,9 +1,12 @@
+// 市场基础行情路由：ticker / klines / depth。
+// 设计思路：优先 Binance，多次失败后回退 OKX，尽量保证可用性。
 const express = require('express');
 const router = express.Router();
 const { fetch, fetchJSON, UA } = require('../services/fetch');
 
 const OKX_IV = { '1m':'1m','5m':'5m','15m':'15m','30m':'30m','1h':'1H','4h':'4H','1d':'1D','1w':'1W' };
 
+// 获取 24h ticker：先 Binance，多线路失败再用 OKX 并转换字段格式。
 async function fetchTicker(symbol) {
   const coin = symbol.replace('USDT', '');
   for (const url of [
@@ -25,6 +28,7 @@ async function fetchTicker(symbol) {
   };
 }
 
+// 获取 K 线：同样先 Binance，再回退 OKX，并把返回格式标准化为 Binance 风格数组。
 async function fetchKlines(symbol, interval, limit = 300) {
   const coin = symbol.replace('USDT', '');
   const okxIv = OKX_IV[interval] || '1H';

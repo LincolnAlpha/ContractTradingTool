@@ -1,3 +1,4 @@
+// fetch 服务层：统一 User-Agent + TTL 缓存，减少重复请求与外部限流风险。
 const fetch = require('node-fetch');
 const { cGet, cSet } = require('./cache');
 

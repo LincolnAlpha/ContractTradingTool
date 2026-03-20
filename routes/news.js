@@ -1,8 +1,10 @@
+// 新闻聚合路由：抓取多个 RSS 源并做关键词过滤与缓存。
 const express = require('express');
 const router = express.Router();
 const { fetch, UA } = require('../services/fetch');
 const { cGet, cSet } = require('../services/cache');
 
+// 部署时补充真实 RSS 源，name 用于前端展示来源名。
 const RSS_SOURCES = [
   { url: '', name: '' },
   { url: '', name: '' },

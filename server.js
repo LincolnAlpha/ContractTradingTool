@@ -1,8 +1,10 @@
+// 后端入口：提供 /api/* 聚合接口，给前端统一访问。
 const express = require('express');
 
 const app = express();
 const PORT = 3000;
 
+// 简化版 CORS 处理中间件，支持浏览器跨域调用。
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
