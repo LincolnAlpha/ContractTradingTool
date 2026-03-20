@@ -62,6 +62,23 @@ test('calcNewsSentiment should include boundary funding rate 0.05%', () => {
   assert.match(desc, /资金费率\+0\.050%/);
 });
 
+test('calcNewsSentiment should include boundary funding rate -0.02%', () => {
+  const document = createDocument(['newsSentLabel', 'newsSentDesc']);
+  const ctx = loadScript(path.join(__dirname, '../js/analysis.js'), { document, window: {} });
+
+  const indicators = { a: { type: 'neutral' } };
+  const fgData = { status: 'rejected' };
+  const lsData = { status: 'rejected' };
+  const fundingData = {
+    status: 'fulfilled',
+    value: [{ fundingRate: '-0.0002' }]
+  };
+
+  ctx.calcNewsSentiment(indicators, fgData, fundingData, lsData);
+  const desc = document.getElementById('newsSentDesc').textContent;
+  assert.match(desc, /资金费率-0\.020%/);
+});
+
 test('renderRiskAlerts should treat decimal and percent fundingRate consistently', () => {
   const document = createDocument(['riskAlerts', 'riskBadge', 'riskConclusion']);
   const ctx = loadScript(path.join(__dirname, '../js/render.js'), { document });
@@ -87,5 +104,22 @@ test('updateMiniChart should not throw when SVG/canvas nodes are missing', () =>
   assert.doesNotThrow(() => {
     ctx.updateMiniChart([1, 2, 3, 4]);
   });
+});
+
+test('renderFundingHistory should keep decimal and percent funding input consistent', () => {
+  const document = createDocument(['frHistBody', 'frHistBadge']);
+  const ctx = loadScript(path.join(__dirname, '../js/render.js'), { document });
+
+  const dataDecimal = [{ fundingRate: '0.0002', fundingTime: Date.now() }];
+  const dataPercent = [{ fundingRate: '0.02', fundingTime: Date.now() }];
+
+  ctx.renderFundingHistory(dataDecimal, 'BTCUSDT');
+  const htmlA = document.getElementById('frHistBody').innerHTML;
+
+  ctx.renderFundingHistory(dataPercent, 'BTCUSDT');
+  const htmlB = document.getElementById('frHistBody').innerHTML;
+
+  assert.match(htmlA, /0\.0200%/);
+  assert.match(htmlB, /0\.0200%/);
 });
 
