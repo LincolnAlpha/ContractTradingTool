@@ -40,6 +40,8 @@ async function loadCalcPage() {
 }
 
 async function calcLoadAllData() {
+  // 初次进入计算器时，同时拉 ticker + K 线。
+  // ticker 用于当前价显示；K 线用于 ATR 和关键位。
   const symbol   = _calcCoin + 'USDT';
   const interval = '1h';
   try {
@@ -61,8 +63,9 @@ async function calcLoadAllData() {
       _calcCloses  = klines.map(k => parseFloat(k[4]));
       _calcVolumes = klines.map(k => parseFloat(k[5]));
 
-      const atrArr = calcATR(_calcHighs, _calcLows, _calcCloses, 14);
-      const lastATR = atrArr[atrArr.length - 1];
+      // 注意：calcATR 返回 { atr, atrArr } 对象，不是纯数组。
+      const atrObj = calcATR(_calcHighs, _calcLows, _calcCloses, 14);
+      const lastATR = atrObj?.atr;
       if (lastATR && !isNaN(lastATR)) _calcATR = lastATR;
 
       const entryEl = document.getElementById('calcEntryPrice');
@@ -102,10 +105,13 @@ function calcUpdate() {
 
   if (!margin || !lev || !entry) return;
 
+  // 名义仓位价值 = 保证金 * 杠杆。
   const posValue  = margin * lev; 
+  // 持仓数量 = 名义仓位 / 入场价。
   const posCoins  = posValue / entry;
   const isCross   = _calcMode === 'cross';
   const isLong    = _calcDir === 'long';
+  // mmr = 维持保证金率（这里是简化常量模型，不同交易所会不同）。
   const mmr = 0.005;
   let liqPrice;
   if (isCross && balance > 0) {
@@ -123,6 +129,7 @@ function calcUpdate() {
     }
   }
 
+  // 爆仓价不允许出现负值。
   liqPrice = Math.max(0, liqPrice);
 
   const liqDist    = Math.abs(entry - liqPrice);

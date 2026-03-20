@@ -2,15 +2,19 @@
 // 这里负责把 K 线转成一组可读的交易信号（bull/bear/neutral + 解释文本）。
 
 function calcEMA(data, period) {
+  // EMA 权重系数：周期越短，k 越大，对最新价格更敏感。
   const k = 2 / (period + 1);
+  // EMA 的第一个值通常用首个价格初始化。
   let ema = [data[0]];
   for (let i = 1; i < data.length; i++) {
+    // 标准 EMA 递推公式：新值 = 当前价*k + 前EMA*(1-k)
     ema.push(data[i] * k + ema[i-1] * (1 - k));
   }
   return ema;
 }
 
 function calcSMA(data, period) {
+  // SMA 每个点都取“过去 period 根”的简单平均。
   return data.map((_, i) => {
     if (i < period - 1) return null;
     return data.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period;
@@ -18,6 +22,7 @@ function calcSMA(data, period) {
 }
 
 function calcMACD(closes) {
+  // MACD = EMA12 - EMA26；Signal 是 MACD 再做 EMA9。
   const ema12 = calcEMA(closes, 12);
   const ema26 = calcEMA(closes, 26);
   const macdLine = ema12.map((v, i) => v - ema26[i]);
@@ -28,6 +33,7 @@ function calcMACD(closes) {
 }
 
 function calcRSI(closes, period=14) {
+  // RSI 核心是“平均涨幅 vs 平均跌幅”的强弱比。
   let gains = [], losses = [];
   for (let i = 1; i < closes.length; i++) {
     const diff = closes[i] - closes[i-1];
@@ -47,6 +53,7 @@ function calcRSI(closes, period=14) {
 }
 
 function calcKDJ(highs, lows, closes, period=9) {
+  // KDJ 先算 RSV，再对 K/D 做平滑。
   const len = closes.length;
   let K = 50, D = 50;
   let results = [];
@@ -65,6 +72,7 @@ function calcKDJ(highs, lows, closes, period=9) {
 }
 
 function calcBollinger(closes, period=20, mult=2) {
+  // 布林带：中轨=SMA，上下轨=中轨±mult*标准差。
   const sma = calcSMA(closes, period);
   return closes.map((_, i) => {
     if (i < period - 1) return { upper: null, mid: null, lower: null, bw: null };
@@ -104,6 +112,7 @@ function calcCMF(highs, lows, closes, volumes, period=20) {
 }
 
 function calcATR(highs, lows, closes, period=14) {
+  // ATR 是“真实波动范围”的平滑值，常用于止损/波动率判断。
   const tr = closes.map((c, i) => {
     if (i === 0) return highs[i] - lows[i];
     const prev = closes[i-1];
@@ -116,6 +125,7 @@ function calcATR(highs, lows, closes, period=14) {
     atr = (atr * (period-1) + tr[i]) / period;
     atrArr.push(atr);
   }
+  // 返回“最后一个 ATR”与“完整 ATR 序列”两种形态，方便不同函数使用。
   return { atr: atrArr[atrArr.length-1], atrArr };
 }
 
@@ -163,6 +173,7 @@ function calcVolumeSMA(volumes, period=20) {
 }
 
 function calcIchimoku(highs, lows, closes) {
+  // 一目均衡表这里用简化实现，输出关键线位用于区域判断。
   const len = closes.length;
   const high9  = (i) => Math.max(...highs.slice(Math.max(0,i-8), i+1));
   const low9   = (i) => Math.min(...lows.slice(Math.max(0,i-8), i+1));
@@ -379,6 +390,7 @@ function signalMeta(type, value, desc) {
 // 输出：用于页面渲染的 indicators + 关键序列数据（closes/highs/lows/volumes 等）
 function analyzeAll(klines) {
   if (!klines || klines.length < 5) throw new Error('该币种刚上线，暂无足够K线数据，请稍后再试');
+  // 把字符串价格转换为 number，避免后续比较出现隐式类型问题。
   const opens   = klines.map(k => parseFloat(k[1]));
   const highs   = klines.map(k => parseFloat(k[2]));
   const lows    = klines.map(k => parseFloat(k[3]));
@@ -387,8 +399,10 @@ function analyzeAll(klines) {
   const last = closes.length - 1;
   const price = closes[last];
 
+  // indicators 是统一输出容器：每个指标都写入 {type,value,desc,bar,group}
   const indicators = {};
 
+  // === 趋势类（Trend）===
   const { macdLine, signal, histogram } = calcMACD(closes);
   const macdVal = macdLine[last];
   const sigVal = signal[last];
@@ -435,6 +449,7 @@ function analyzeAll(klines) {
     indicators.boll = { ...signalMeta('neutral', 'N/A', '数据不足'), bar: 50, group:'trend' };
   }
 
+  // === 动量类（Momentum）===
   const rsis = calcRSI(closes);
   const rsi = rsis[rsis.length-1];
   const rsiPrev = rsis[rsis.length-2];
@@ -485,6 +500,7 @@ function analyzeAll(klines) {
   else { cciType = 'bear'; cciBar = 42; cciDesc = `负向区间`; }
   indicators.cci = { ...signalMeta(cciType, cci.toFixed(0), cciDesc), bar: cciBar, group:'momentum' };
 
+  // === 量能类（Volume）===
   const obv = calcOBV(closes, volumes);
   const obvSMA = calcSMA(obv, 20);
   const obvLast = obv[last];
@@ -522,6 +538,7 @@ function analyzeAll(klines) {
   else if (price < vwapLast * 0.99) { vwapType = 'bear'; vwapBar = 32; vwapDesc = `价格在VWAP下方`; }
   indicators.vwap = { ...signalMeta(vwapType, fmtPrice(vwapLast), vwapDesc), bar: vwapBar, group:'volume' };
 
+  // === 波动类（Volatility）===
   const { atr } = calcATR(highs, lows, closes);
   const atrPct = atr / price * 100;
   let atrType = 'neutral', atrBar = 50, atrDesc = `ATR: ${fmtPrice(atr)} (${atrPct.toFixed(2)}%)`;
@@ -548,6 +565,7 @@ function analyzeAll(klines) {
   else { dcType = 'bear'; dcDesc = `通道中下区间`; }
   indicators.donchian = { ...signalMeta(dcType, `${(dcPct*100).toFixed(0)}%`, dcDesc), bar: dcBar, group:'volatility' };
 
+  // === 支撑/辅助类（Supp）===
   const ichi = calcIchimoku(highs, lows, closes);
   const aboveCloud = ichi.price > Math.max(ichi.senkouA, ichi.senkouB);
   const belowCloud = ichi.price < Math.min(ichi.senkouA, ichi.senkouB);
@@ -586,6 +604,7 @@ function analyzeAll(klines) {
   else { rocDesc = `动能趋近零轴 (${roc.toFixed(2)}%)`; }
   indicators.roc = { ...signalMeta(rocType, `${roc.toFixed(2)}%`, rocDesc), bar: rocBar, group:'supp' };
 
+  // === 均线系统（MA System）===
   const ma5   = calcSMA(closes, 5);
   const ma10  = calcSMA(closes, 10);
   const ma20  = calcSMA(closes, 20);
@@ -611,6 +630,7 @@ function analyzeAll(klines) {
   let ma120Type = price>m120?'bull':'bear';
   indicators.ma120 = { ...signalMeta(ma120Type, fmtPrice(m120), price>m120?'价格站上MA120长期均线':'价格跌破MA120长期均线'), bar: price>m120?70:30, group:'masys' };
 
+  // === Vegas / Elliott 等结构信号 ===
   const vegas = calcVegasTunnel(closes);
   const vegasBull = price > vegas.upper;
   const vegasBear = price < vegas.lower;
@@ -625,6 +645,7 @@ function analyzeAll(klines) {
 
   const elliott = calcElliottWave(closes, highs, lows);
 
+  // 以下 try/catch 是“可选指标”，即使单项计算异常也不阻断主流程。
   try {
     const { sar, bull: sarBull } = calcParabolicSAR(highs, lows);
     const sarVal = sar[last];
@@ -789,7 +810,9 @@ function calcKeltner(highs, lows, closes, emaPeriod=20, atrPeriod=10, mult=2) {
   // 说明：这里的 ATR 需要按“序列”参与通道计算（upper/lower 随时间变化）。
   // 若后续重构该函数，注意保持 ATR 与 EMA 的时间索引对齐。
   const ema = calcEMA(closes, emaPeriod);
-  const atr = calcATR(highs, lows, closes, atrPeriod);
+  // 这里应该使用 ATR 序列（atrArr）做逐点通道计算。
+  const atrObj = calcATR(highs, lows, closes, atrPeriod);
+  const atr = atrObj.atrArr || [];
   return closes.map((_, i) => ({
     upper: ema[i] != null && atr[i] != null ? ema[i] + mult * atr[i] : null,
     mid:   ema[i],

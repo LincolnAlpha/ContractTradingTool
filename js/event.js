@@ -6,6 +6,7 @@ let _evTicker = null;
 let _evSettleTimer = null;
 
 function evGetAccount() {
+  // 事件页账户是“本地模拟账户”，只存在浏览器 localStorage 中。
   try {
     const saved = localStorage.getItem('ev_account');
     if (saved) return JSON.parse(saved);
@@ -18,6 +19,7 @@ function evSaveAccount(acc) {
 }
 
 function evGetOrders() {
+  // 当前持仓订单（未结算）。
   try {
     return JSON.parse(localStorage.getItem('ev_orders') || '[]');
   } catch(e) { return []; }
@@ -28,6 +30,7 @@ function evSaveOrders(orders) {
 }
 
 function evGetHistory() {
+  // 历史订单（已结算）。
   try {
     return JSON.parse(localStorage.getItem('ev_history') || '[]');
   } catch(e) { return []; }
@@ -247,6 +250,11 @@ function evUpdateAmountDisplay() {
 }
 
 function evPlaceOrder(direction) {
+  // 下单流程：
+  // 1) 校验行情与金额
+  // 2) 扣减余额
+  // 3) 生成订单并写入本地存储
+  // 4) 刷新 UI
   if (!_evTicker) { alert('行情数据未加载，请稍后'); return; }
 
   const amtInput = document.getElementById('evAmount');
@@ -320,6 +328,10 @@ function evStartSettleLoop() {
 }
 
 async function evCheckSettle() {
+  // 结算流程：
+  // - 扫描已到期订单
+  // - 用到期时附近价格判断输赢
+  // - 回写余额/胜率/历史
   const orders = evGetOrders();
   if (orders.length === 0) return;
 
@@ -350,6 +362,7 @@ async function evCheckSettle() {
     }
 
     const priceUp = exitPrice > order.entryPrice;
+    // 买涨：到期价 > 入场价算赢；买跌：到期价 <= 入场价算赢。
     const won = (order.direction === 'up' && priceUp) || (order.direction === 'down' && !priceUp);
     const pnl = won ? parseFloat((order.amount * 0.8).toFixed(2)) : -order.amount;
 

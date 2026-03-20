@@ -70,13 +70,18 @@ function setElClass(id, val) { const el = document.getElementById(id); if(el) el
 // 2) 计算：调用 analyzeAll 生成完整指标信号
 // 3) 输出：把各模块渲染到页面并缓存结果供 event/calc 页面复用
 async function loadAll(silent=false) {
+  // 读取用户当前选择的交易对（例如 BTCUSDT）。
   const symbol = document.getElementById('symbolSelect').value;
+  // 为了在输入框里显示成更友好的 BTC/USDT 形式，这里取基础币名。
   const _base = symbol.replace('USDT','');
   const _inp = document.getElementById('symbolInput');
+  // 当下拉搜索框未展开时，才自动改写输入框，避免打断用户输入。
   if (_inp && !window._symbolDropdownOpen) _inp.value = _base + '/USDT';
+  // 读取时间周期（15m/1h/4h/...），后续会影响 K 线和指标计算结果。
   const interval = document.getElementById('intervalSelect').value;
   const btn = document.getElementById('refreshBtn');
 
+  // 进入加载状态：禁用按钮，防止用户重复点击触发并发请求。
   btn.disabled = true;
   setStatus('loading');
   document.getElementById('errorBanner')?.classList.remove('show');
@@ -86,6 +91,8 @@ async function loadAll(silent=false) {
   try {
     document.getElementById('loaderText').textContent = '并行获取市场数据...';
     const coin = symbol.replace('USDT','').replace('BUSD','');
+    // 并行拉取全部所需数据，避免串行等待导致页面加载过慢。
+    // Promise.allSettled 的好处：单个接口失败不会直接让整个流程抛错。
     const [klines, ticker, fundingData, oiData, lsData, fgData, forceOrdersData, depthData] = await Promise.allSettled([
       getKlines(symbol, interval, 300),
       getTicker(symbol),
@@ -99,11 +106,13 @@ async function loadAll(silent=false) {
 
     document.getElementById('loaderText').textContent = '计算技术指标...';
 
+    // K 线是后续所有指标的根数据，必须优先校验。
     if (klines.status === 'rejected') {
       showError('K线数据获取失败，请点击刷新重试');
       setStatus('error');
       return;
     }
+    // 防止“接口成功但返回空数组”的场景。
     if (!Array.isArray(klines.value) || klines.value.length === 0) {
       showError('该币种暂无K线数据，可能刚上线或已下架');
       setStatus('error');
@@ -111,6 +120,7 @@ async function loadAll(silent=false) {
     }
     const klinesData = klines.value;
 
+    // Ticker 主要用于顶部行情展示，不影响核心指标计算。
     if (ticker.status === 'fulfilled') {
       const t = ticker.value;
       const change = parseFloat(t.priceChangePercent);
@@ -127,10 +137,12 @@ async function loadAll(silent=false) {
     }
 
     document.getElementById('loaderText').textContent = '生成信号分析...';
+    // 进入计算引擎：把原始 K 线转成结构化指标对象。
     const { indicators, closes, highs, lows, volumes, fib, vegas, elliott } = analyzeAll(klinesData);
 
     updateMiniChart(closes.slice(-60));
 
+    // 下面按功能分区渲染，核心思想是“先算完，再按模块展示”。
     renderGroup('trendList', 'trendBadge', indicators, 'trend', nameMap);
     renderGroup('momentumList', 'momentumBadge', indicators, 'momentum', nameMap);
     renderGroup('volumeList', 'volumeBadge', indicators, 'volume', nameMap);
@@ -144,6 +156,7 @@ async function loadAll(silent=false) {
     renderElliott(elliott);
 
     document.getElementById('loaderText').textContent = '分析清算与流动性...';
+    // 额外市场结构模块（清算/订单簿/量价）使用独立数据渲染。
     const forceOrders = forceOrdersData.status === 'fulfilled' ? forceOrdersData.value : null;
     renderLiquidation(forceOrders, klinesData);
     const depth = depthData.status === 'fulfilled' ? depthData.value : null;
@@ -155,9 +168,11 @@ async function loadAll(silent=false) {
     renderVolumeDelta(klinesData);
     renderVolumePrice(klinesData);
 
+    // 综合评分是对 indicators 的二次聚合，用于快速判断市场偏向。
     renderScore(indicators);
 
     let frValue = null;
+    // 资金费率：正值一般代表多头付费，负值代表空头付费。
     if (fundingData.status === 'fulfilled' && fundingData.value?.length) {
       const fr = parseFloat(fundingData.value[0].fundingRate) * 100;
       frValue = fr;
@@ -169,6 +184,7 @@ async function loadAll(silent=false) {
       document.getElementById('fundingNote').textContent = '现货交易对';
     }
 
+    // 持仓量（OI）用于判断资金是否进场。
     if (oiData.status === 'fulfilled' && oiData.value?.openInterest) {
       const oi = parseFloat(oiData.value.openInterest);
       document.getElementById('openInterest').textContent = fmt(oi);
@@ -178,6 +194,7 @@ async function loadAll(silent=false) {
     }
 
     let lsRatio = null;
+    // 多空账户比用于情绪辅助，不直接决定涨跌，但可提供拥挤度参考。
     if (lsData.status === 'fulfilled' && lsData.value?.length) {
       const ls = lsData.value[0];
       const lp = parseFloat(ls.longAccount);
@@ -190,6 +207,7 @@ async function loadAll(silent=false) {
       document.getElementById('lsShort').textContent = '--';
     }
     let fgVal = null;
+    // 恐惧贪婪指数用于宏观情绪补充。
     if (fgData.status === 'fulfilled' && fgData.value?.data?.[0]) {
       const fg = fgData.value.data[0];
       fgVal = fg.value;
@@ -199,6 +217,7 @@ async function loadAll(silent=false) {
       document.getElementById('fgValue').textContent = '--';
     }
 
+    // 将技术面 + 情绪面标签汇总渲染成“易读标签”。
     renderSentimentTags(indicators, frValue, fgVal, lsRatio);
 
     const tickerVal = ticker.status === 'fulfilled' ? ticker.value : null;
@@ -212,6 +231,7 @@ async function loadAll(silent=false) {
 
     document.getElementById('statMC').textContent = '实时数据';
 
+    // 持久化本次分析结果，供“事件页 / 计算器页”复用，避免重复计算。
     storeAnalysisData({
       indicators, closes, highs, lows, volumes,
       price: parseFloat(klinesData[klinesData.length-1][4]),
@@ -220,6 +240,7 @@ async function loadAll(silent=false) {
       fgVal, frValue, lsRatio
     });
 
+    // 更新时间戳仅用于 UI 提示，不参与计算。
     const now = new Date();
     document.getElementById('lastUpdate').textContent = `更新于 ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
     setStatus('live');
@@ -229,6 +250,7 @@ async function loadAll(silent=false) {
     showError(e.message || '数据加载失败，请刷新重试');
     setStatus('error');
   } finally {
+    // finally 一定会执行，保证按钮和遮罩状态回收。
     btn.disabled = false;
     if (!silent) document.getElementById('loadingOverlay').classList.add('hidden');
   }

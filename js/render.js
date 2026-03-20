@@ -31,10 +31,13 @@ function renderIndicatorRow(id, name, ind) {
 }
 
 function renderGroup(containerId, badgeId, indicators, group, nameMap) {
+  // 先按分组筛选指标（例如 trend / momentum）。
   const filtered = Object.entries(indicators).filter(([,v]) => v.group === group);
+  // 把每个指标对象渲染成一行 HTML。
   const html = filtered.map(([k,v]) => renderIndicatorRow(k, nameMap[k]||k, v)).join('');
   document.getElementById(containerId).innerHTML = html;
 
+  // 统计该分组多空数量，用于右上角徽标快速判断。
   const bulls = filtered.filter(([,v]) => v.type==='bull').length;
   const bears = filtered.filter(([,v]) => v.type==='bear').length;
   const badge = document.getElementById(badgeId);
@@ -44,7 +47,9 @@ function renderGroup(containerId, badgeId, indicators, group, nameMap) {
 }
 
 function renderFibonacci(fib) {
+  // fib 来自 analyzeAll，已包含 levels/swingHigh/swingLow/pct 等关键字段。
   const { levels, swingHigh, swingLow, price, pct, nearestBelow, nearestAbove } = fib;
+  // 只展示最常用的几个 Fib 位，避免信息过载。
   const keyLevels = [['0.0','区间低点'],['23.6','浅回调'],['38.2','黄金回调'],['50.0','中位支撑'],['61.8','黄金分割'],['78.6','深回调'],['100.0','区间高点']];
   const levelsHtml = keyLevels.map(([k, label]) => {
     const val = levels[k];
@@ -142,10 +147,12 @@ function renderElliott(elliott) {
 }
 
 function renderScore(indicators) {
+  // 汇总总指标数量，并按 bull/bear/neutral 分类计数。
   const all = Object.values(indicators);
   const bulls = all.filter(v => v.type==='bull').length;
   const bears = all.filter(v => v.type==='bear').length;
   const neutral = all.filter(v => v.type==='neutral').length;
+  // 只用 bull 与 bear 参与多空比例，neutral 仅作展示计数。
   const total = bulls + bears;
   const longScore = total === 0 ? 50 : Math.round(bulls / total * 100);
   const shortScore = 100 - longScore;
@@ -158,6 +165,7 @@ function renderScore(indicators) {
   document.getElementById('countBear').textContent = bears;
   document.getElementById('countNeutral').textContent = neutral;
 
+  // 根据分值区间输出最终建议词（LONG/SHORT/WAIT）。
   let verdict = '', verdictColor = 'var(--text-muted)', badgeClass = 'badge-blue', badgeText = '';
   if (longScore >= 70) { verdict = 'LONG'; verdictColor = 'var(--green)'; badgeClass = 'badge-green'; badgeText = '强烈做多'; }
   else if (longScore >= 55) { verdict = 'LONG?'; verdictColor = 'var(--green)'; badgeClass = 'badge-green'; badgeText = '偏多'; }
@@ -174,6 +182,7 @@ function renderScore(indicators) {
 }
 
 function updateMiniChart(closes) {
+  // 折线坐标归一化到固定画布（w=200,h=60），用于顶部小图。
   const min = Math.min(...closes);
   const max = Math.max(...closes);
   const range = max - min || 1;
@@ -293,6 +302,7 @@ function renderLSRatio(longPct, shortPct) {
 }
 
 function renderSentimentTags(indicators, fundingRate, fgVal, lsRatio) {
+  // 标签法则：把复杂指标翻译为简短标签，面向快速阅读。
   const tags = [];
   const all = Object.values(indicators);
   const bulls = all.filter(v => v.type==='bull').length;

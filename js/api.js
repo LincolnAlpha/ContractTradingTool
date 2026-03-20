@@ -24,6 +24,7 @@ async function loadSymbolList() {
 }
 
 function renderSymbolDropdown(items) {
+  // 把可选币种渲染成下拉列表（最多显示 80 项，避免过长卡顿）。
   const dd = document.getElementById('symbolDropdown');
   if (!dd) return;
   const current = document.getElementById('symbolSelect').value;
@@ -41,6 +42,7 @@ function renderSymbolDropdown(items) {
 }
 
 function openSymbolDropdown() {
+  // 输入框聚焦时显示完整列表，并把下拉定位到输入框正下方。
   const inp = document.getElementById('symbolInput');
   if (!inp) return;
   let dd = document.getElementById('symbolDropdown');
@@ -61,6 +63,7 @@ function openSymbolDropdown() {
 }
 
 function filterSymbols(val) {
+  // 统一清洗用户输入（去除 / - 空格），提高检索命中率。
   const dd = document.getElementById('symbolDropdown');
   if (!dd) return;
   window._symbolDropdownOpen = true;
@@ -102,6 +105,7 @@ async function getKlines(symbol, interval, limit=300) {
 }
 
 async function getTicker(symbol) {
+  // symbol 非法时直接返回，避免发起无效请求。
   if (!symbol || symbol.trim() === '') return null;
   const r = await fetchTimeout(`${API}/api/ticker?symbol=${encodeURIComponent(symbol)}`, 10000);
   if (!r.ok) return null;
@@ -157,6 +161,7 @@ async function getOrderBook(symbol, limit=20) {
 }
 
 async function getCGCommunity(coin) {
+  // CoinGecko 社区数据有 5 分钟前端缓存，减少重复请求和限流风险。
   if (!coin || !/^[a-zA-Z0-9]+$/.test(coin)) return null;
   const cacheKey = 'cg_' + coin;
   const cached = _cgCache[cacheKey];
@@ -186,6 +191,7 @@ async function getOnchainTrades(coin) {
 }
 
 async function getTrendingCoins() {
+  // 这里的缓存属于前端内存缓存，刷新页面后会丢失。
   if (_trendingCache && Date.now() - _trendingTs < 300000) return _trendingCache;
   try {
     const r = await fetchTimeout(`${API}/api/trending`, 10000);
