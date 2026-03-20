@@ -1,6 +1,7 @@
 // 后端入口：提供 /api/* 聚合接口，给前端统一访问。
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 
 const app = express();
 // 默认 3000，可通过环境变量 PORT 覆盖。
@@ -23,6 +24,8 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+// 提供静态文件服务（index.html、pages、css、js 等）。
+app.use(express.static(__dirname));
 
 // 按功能模块挂载路由，统一前缀 /api。
 app.use('/api', require('./routes/market'));
@@ -31,6 +34,11 @@ app.use('/api', require('./routes/sentiment'));
 app.use('/api', require('./routes/news'));
 app.use('/api', require('./routes/proxy'));
 app.use('/api', require('./routes/live'));
+
+// Vercel/本地访问根路径时返回首页。
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 app.get('/ping', (req, res) => res.json({ ok: true, t: Date.now() }));
 
