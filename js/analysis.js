@@ -1,13 +1,16 @@
 
 // 把情绪数据（恐惧贪婪、资金费率、多空比）+ 技术面信号合成为一个“新闻情绪标签”。
 function calcNewsSentiment(indicators, fgData, fundingData, lsData) {
+  // 获取展示区域 DOM，若页面不含该模块就直接退出。
   const labelEl = document.getElementById('newsSentLabel');
   const descEl  = document.getElementById('newsSentDesc');
   if (!labelEl || !descEl) return;
 
+  // score 为综合分：>0 偏多，<0 偏空，绝对值越大表示倾向越强。
   let score = 0;
   const reasons = [];
 
+  // 维度1：恐惧贪婪指数（市场整体情绪）
   if (fgData?.status === 'fulfilled' && fgData.value) {
     const fg = parseInt(fgData.value.value);
     if (fg >= 70)      { score += 2; reasons.push(`贪婪指数${fg}(极度贪婪)`); }
@@ -16,18 +19,21 @@ function calcNewsSentiment(indicators, fgData, fundingData, lsData) {
     else if (fg <= 40) { score -= 1; reasons.push(`恐惧指数${fg}(偏悲观)`); }
   }
 
+  // 维度2：资金费率（合约市场拥挤度）
   if (fundingData?.status === 'fulfilled' && fundingData.value) {
     const fr = parseFloat(fundingData.value[0]?.fundingRate || 0) * 100;
     if (fr > 0.05)       { score += 1; reasons.push(`资金费率+${fr.toFixed(3)}%(多头积极)`); }
     else if (fr < -0.02) { score -= 1; reasons.push(`资金费率${fr.toFixed(3)}%(空头主导)`); }
   }
 
+  // 维度3：多空账户比（账户层面的方向倾向）
   if (lsData?.status === 'fulfilled' && lsData.value) {
     const ls = parseFloat(lsData.value.longShortRatio || lsData.value[0]?.longShortRatio || 1);
     if (ls > 1.3)      { score += 1; reasons.push(`多空比${ls.toFixed(2)}(多头占优)`); }
     else if (ls < 0.8) { score -= 1; reasons.push(`多空比${ls.toFixed(2)}(空头占优)`); }
   }
 
+  // 维度4：技术指标整体偏向（bull 数量 vs bear 数量）
   if (indicators) {
     const vals = Object.values(indicators);
     const bulls = vals.filter(v => v.type === 'bull').length;
@@ -49,6 +55,7 @@ function calcNewsSentiment(indicators, fgData, fundingData, lsData) {
   else if (score <= -1) { label = '略偏空';   color = '#ff9800'; }
   else                  { label = '中性';     color = 'var(--gold)'; }
 
+  // 描述最多保留 3 条，避免 UI 过长换行影响可读性。
   desc = reasons.slice(0, 3).join('，');
   if (!desc) desc = '数据不足，暂无判断';
 
@@ -58,6 +65,7 @@ function calcNewsSentiment(indicators, fgData, fundingData, lsData) {
 }
 
 function setEl(id, val, prop='textContent') {
+  // 通用 DOM 赋值工具：减少重复 null 判断代码。
   const el = document.getElementById(id);
   if (el) el[prop] = val;
 }
@@ -94,13 +102,21 @@ async function loadAll(silent=false) {
     // 并行拉取全部所需数据，避免串行等待导致页面加载过慢。
     // Promise.allSettled 的好处：单个接口失败不会直接让整个流程抛错。
     const [klines, ticker, fundingData, oiData, lsData, fgData, forceOrdersData, depthData] = await Promise.allSettled([
+      // 1) K线：主输入（最重要）
       getKlines(symbol, interval, 300),
+      // 2) Ticker：顶部价格信息
       getTicker(symbol),
+      // 3) 资金费率：合约拥挤度
       getFundingRate(symbol),
+      // 4) OI：持仓规模
       getOpenInterest(symbol),
+      // 5) 多空账户比
       getGlobalLSRatio(symbol),
+      // 6) 恐惧贪婪指数
       getFearGreed(),
+      // 7) 强平订单
       getForceOrders(symbol),
+      // 8) 订单簿深度
       getOrderBook(symbol, 20),
     ]);
 
@@ -140,6 +156,7 @@ async function loadAll(silent=false) {
     // 进入计算引擎：把原始 K 线转成结构化指标对象。
     const { indicators, closes, highs, lows, volumes, fib, vegas, elliott } = analyzeAll(klinesData);
 
+    // 迷你图只取最近 60 根，兼顾响应速度与走势可读性。
     updateMiniChart(closes.slice(-60));
 
     // 下面按功能分区渲染，核心思想是“先算完，再按模块展示”。
@@ -160,6 +177,7 @@ async function loadAll(silent=false) {
     const forceOrders = forceOrdersData.status === 'fulfilled' ? forceOrdersData.value : null;
     renderLiquidation(forceOrders, klinesData);
     const depth = depthData.status === 'fulfilled' ? depthData.value : null;
+    // 当前价直接取最后一根 K 线收盘价，避免 ticker 与 K 线时间差导致偏移。
     const currentPrice = parseFloat(klinesData[klinesData.length-1][4]);
     renderOrderBook(depth, currentPrice);
 
@@ -220,8 +238,8 @@ async function loadAll(silent=false) {
     // 将技术面 + 情绪面标签汇总渲染成“易读标签”。
     renderSentimentTags(indicators, frValue, fgVal, lsRatio);
 
+    // 预留：社区与趋势数据请求（当前只触发预热，不直接参与本函数渲染）。
     const tickerVal = ticker.status === 'fulfilled' ? ticker.value : null;
-
     const cgCommData = null;
     const trendingData = null;
     Promise.allSettled([
@@ -258,12 +276,15 @@ async function loadAll(silent=false) {
 
 // 保存最近一次分析结果，其他页面（事件/计算器）会复用这份数据。
 function storeAnalysisData(data) {
+  // 主缓存对象：事件页、计算器会读取这一份结果。
   _lastAnalysisData = data;
+  // 一些跨页面轻量字段直接挂到 window，便于老代码兼容。
   window._lastFrValue = data.frValue;
   window._lastInterval = document.getElementById('intervalSelect')?.value || '1h';
 }
 
 async function loadMonitor() {
+  // 30 秒节流：避免重复进入监控页时不断打接口。
   const now = Date.now();
   if (now - _monitorLastLoad < 30000) return;
   _monitorLastLoad = now;
@@ -272,10 +293,12 @@ async function loadMonitor() {
   if (dot) { dot.className = 'status-dot loading'; }
   if (!dot) return;
 
+  // 监控页当前币种沿用分析页选择。
   const symbol = document.getElementById('symbolSelect')?.value || 'BTCUSDT';
   const coin   = symbol.replace('USDT','');
 
   try {
+    // 并行拉取监控页所有数据源（资金费率历史、OI历史、链上、趋势、全局）。
     const [frHistory, oiHistory, klines24h, ticker, cgData, onchainData, trendData, globalData] = await Promise.allSettled([
       fetchTimeout(`${API}/api/proxy?u=${encodeURIComponent(`https://fapi.binance.com/fapi/v1/fundingRate?symbol=${symbol}&limit=24`)}`, 10000).then(r=>r.ok?r.json():null).catch(()=>null),
       fetchTimeout(`${API}/api/proxy?u=${encodeURIComponent(`https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=24`)}`, 10000).then(r=>r.ok?r.json():null).catch(()=>null),
@@ -287,6 +310,7 @@ async function loadMonitor() {
       getGlobalMarket(),
     ]);
 
+    // 对 Promise.allSettled 结果做统一解包，失败项会变成 null/[]。
     const klinesData  = klines24h.status === 'fulfilled' ? klines24h.value : [];
     const tickerData  = ticker.status === 'fulfilled' ? ticker.value : null;
     const frData      = frHistory.status === 'fulfilled' ? frHistory.value : null;
@@ -296,6 +320,7 @@ async function loadMonitor() {
     const trending    = trendData.status === 'fulfilled' ? trendData.value : null;
     const globalInfo  = globalData.status === 'fulfilled' ? globalData.value : null;
 
+    // 各监控卡片独立渲染，即使某个模块数据缺失也不会阻断其他模块。
     renderWhaleMonitor(coin, klinesData, tickerData, cgInfo, onchain);
     renderSmartMoney(coin, klinesData, tickerData, cgInfo);
     renderOnChainAnomalies(coin, klinesData, tickerData, onchain, trending, globalInfo);
@@ -304,12 +329,14 @@ async function loadMonitor() {
     renderOIHistory(oiData, coin);
     renderRiskAlerts(coin, klinesData, tickerData, frData);
 
+    // 这里是演示型聚合统计（非严格计算），用于页面快速展示“异动数量”。
     const totalAlerts = 6 + Math.floor(Math.random()*4);
     document.getElementById('monitorAlertCount').textContent = totalAlerts + ' 个异动';
     document.getElementById('monWhaleCount').textContent  = Math.floor(totalAlerts*0.35) + '个';
     document.getElementById('monSmartCount').textContent  = Math.floor(totalAlerts*0.3)  + '个';
     document.getElementById('monAnomalyCount').textContent= Math.floor(totalAlerts*0.35) + '个';
 
+    // 风险级别按 24h 涨跌幅绝对值粗略划分。
     const riskEl = document.getElementById('monRiskLevel');
     const change = tickerData ? Math.abs(parseFloat(tickerData.priceChangePercent)) : 0;
     const risk   = change > 5 ? '高' : change > 2 ? '中' : '低';
@@ -324,6 +351,7 @@ async function loadMonitor() {
 }
 
 function setEventCoin(coin, btn) {
+  // 事件页换币后，和分析页币种保持同步，确保数据口径一致。
   _eventCoin = coin;
   document.querySelectorAll('.event-coin-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
@@ -338,6 +366,7 @@ function setEventCoin(coin, btn) {
 }
 
 async function refreshEventPage() {
+  // 强制按事件页当前币种重新跑一遍分析主流程。
   const btn = document.getElementById('monitorRefreshBtn');
   const sym = _eventCoin + 'USDT';
   const symSelect = document.getElementById('symbolSelect');
@@ -346,6 +375,7 @@ async function refreshEventPage() {
 }
 
 function fetchWithTimeout(url, ms = 6000) {
+  // analysis.js 内部版本的超时请求（与 utils.js 类似，保留兼容）。
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   return fetch(url, { signal: ctrl.signal, cache: 'no-cache' })
@@ -359,6 +389,7 @@ async function fetchLiveData() {
 function parseLiveHtml(html) { return null; }
 
 function mapLiveData(rawList) {
+  // 把直播源原始数据转换成前端统一结构（含情绪标签和排序分）。
   return rawList.map((s, i) => {
     const { sentiment, tags, coins } = analyzeStreamerTitle(s.title || '');
     const viewers  = s.viewers || 0;
@@ -368,6 +399,7 @@ function mapLiveData(rawList) {
       const st = new Date(s.startTime.replace(/-/g, '/'));
       if (!isNaN(st)) duration = Math.max(1, Math.round((Date.now() - st.getTime()) / 60000));
     }
+    // 弹幕量为估算值（当前无真实字段时用于视觉表现）。
     const danmaku = Math.round(viewers * (0.8 + Math.random() * 0.6));
     const avatar  = (s.name || 'X').slice(0, 2);
     const score   = viewers * 1.0 + danmaku * 3 + views * 0.05;
@@ -384,6 +416,7 @@ function mapLiveData(rawList) {
 }
 
 async function loadLivePage() {
+  // 防重入：避免连续点击导致并发请求与 UI 抖动。
   if (_liveLoading) return;
   _liveLoading = true;
 
@@ -391,6 +424,7 @@ async function loadLivePage() {
   if (grid) grid.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:20px 0;">加载中...</div>';
 
   try {
+    // 直播页数据由后端 /api/live 聚合提供。
     const r = await fetch(API + '/api/live');
     const data = await r.json();
 
@@ -408,6 +442,7 @@ async function loadLivePage() {
 }
 
 function renderLiveStats(data) {
+  // 这里主要渲染顶部统计与“多空情绪占比”概览。
   const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   setEl('liveCount',  data.liveNum || 0);
   setEl('liveOnline', fmt(data.onlineNum || 0));
@@ -425,6 +460,7 @@ function renderLiveStats(data) {
   const longKw  = ['多','看多','做多','买入','涨','long','bull','up'];
   const shortKw = ['空','看空','做空','卖出','跌','short','bear','down'];
 
+  // 通过标题关键词做简易情绪分类（启发式，不是 NLP 模型）。
   list.forEach(item => {
     const title = (item.live_title || '').toLowerCase();
     const isLong  = longKw.some(k => title.includes(k));
@@ -465,6 +501,7 @@ function renderLiveStats(data) {
 }
 
 function renderLiveStreamers(list) {
+  // 主播列表按在线人数降序，展示“当前热度”。
   const grid = document.getElementById('liveStreamerGrid');
   if (!grid) return;
   if (!list || list.length === 0) {
@@ -495,6 +532,7 @@ function renderLiveStreamers(list) {
 
     const rankColor = idx === 0 ? '#FFD700' : idx === 1 ? '#C0C0C0' : idx === 2 ? '#CD7F32' : 'var(--text-muted)';
 
+    // 有直播链接时卡片可点击跳转。
     const clickHandler = liveUrl ? 'window.open("' + liveUrl + '","_blank")' : '';
     return '<div class="streamer-card" style="cursor:' + (liveUrl?'pointer':'default') + ';" onclick="' + clickHandler + '">' +
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">' +
@@ -520,6 +558,7 @@ function renderLiveStreamers(list) {
   }).join('');
 }
 
+// 注意：此函数被下方同名函数覆盖，保留是历史兼容代码。
 function showLiveDataSource(status, count) {
   const badge = document.getElementById('liveSentBadge');
   if (!badge) return;
@@ -531,6 +570,7 @@ function showLiveDataSource(status, count) {
 }
 
 function showLiveDataSource(status, count) {
+  // 实际生效版本：除文案外还会同步更新样式。
   const badge = document.getElementById('liveSentBadge');
   if (!badge) return;
   if (status === 'real') {
