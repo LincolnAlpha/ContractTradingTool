@@ -526,7 +526,8 @@ function renderSentimentTags(indicators, fundingRate, fgVal, lsRatio) {
 
   // 第七层：情绪面标签（资金费率/多空比/恐惧贪婪）。
   if (fundingRate !== null) {
-    // analysis.js 传入的是“百分比值”（例如 0.0123% -> 0.0123），这里不再二次 *100。
+    // analysis.js 已将原始小数 fundingRate 转为“百分比数值”：
+    // 例如原始 0.000123 -> 0.0123（表示 0.0123%），这里直接用，不再 *100。
     const fr = parseFloat(fundingRate);
     if (fr > 0.1) tags.push({ text: `资金费率偏高 ${fr.toFixed(3)}%`, cls: 'badge-red' });
     else if (fr > 0.05) tags.push({ text: `资金费率偏高 ${fr.toFixed(3)}%`, cls: 'badge-amber' });
