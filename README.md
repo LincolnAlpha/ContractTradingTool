@@ -175,6 +175,16 @@ cp .env.example .env
 - `LIVE_REFERER` / `LIVE_ORIGIN`
   - 直播请求头辅助字段，部分站点会校验
 
+- `LIVE_PROVIDER`
+  - `generic`：先抓页面提取 token，再请求 API（默认）
+  - `json`：直接请求 JSON API（无需页面抓取）
+
+- `LIVE_TOKEN_REGEX`
+  - `generic` 模式下用于提取 token 的正则（第 1 个捕获组为 token）
+
+- `LIVE_LIST_PATH`
+  - JSON 结果中“直播列表”所在路径，默认 `list`（例如也可填 `data.list`）
+
 > 若不配置这些变量，`proxy/news/live` 的部分能力会降级或不可用，这是预期保护行为。
 
 ## 上线前检查清单
@@ -194,6 +204,9 @@ LIVE_PAGE_URL=
 LIVE_API_URL=
 LIVE_REFERER=
 LIVE_ORIGIN=
+LIVE_PROVIDER=generic
+LIVE_TOKEN_REGEX=token=([a-f0-9]{32})
+LIVE_LIST_PATH=list
 ```
 
 说明：

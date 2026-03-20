@@ -5,27 +5,51 @@ const { fetch } = require('../services/fetch');
 const { cGet, cSet } = require('../services/cache');
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36';
+const LIVE_PROVIDER = (process.env.LIVE_PROVIDER || 'generic').toLowerCase();
 const LIVE_PAGE_URL = process.env.LIVE_PAGE_URL || '';
 const LIVE_API_URL = process.env.LIVE_API_URL || '';
 const LIVE_REFERER = process.env.LIVE_REFERER || '';
 const LIVE_ORIGIN = process.env.LIVE_ORIGIN || '';
+const LIVE_TOKEN_REGEX = process.env.LIVE_TOKEN_REGEX || 'token=([a-f0-9]{32})';
+const LIVE_LIST_PATH = process.env.LIVE_LIST_PATH || 'list';
 
-// 当前为占位抓取逻辑：需要补齐真实页面 URL 与接口 URL。
-async function getLiveData() {
-  if (!LIVE_PAGE_URL || !LIVE_API_URL) {
-    throw new Error('live source not configured');
-  }
-  // 第一步先抓页面，通常 token 会内嵌在 HTML/脚本里。
-  const pageRes = await fetch(LIVE_PAGE_URL, {
-    headers: { 'User-Agent': UA, 'Accept': 'text/html' }
-  });
-  const html = await pageRes.text();
-  const m = html.match(/token=([a-f0-9]{32})/);
-  if (!m) throw new Error('token not found');
-  const token = m[1];
-  // 目前 token 只做示例提取，后续应拼入真实 API 请求参数。
+function readPath(obj, pathExpr) {
+  if (!obj || !pathExpr) return undefined;
+  return pathExpr.split('.').reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
+}
 
-  const r = await fetch(LIVE_API_URL, {
+function toNum(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function normalizeLiveList(rawList) {
+  if (!Array.isArray(rawList)) return [];
+  return rawList.map((item, idx) => {
+    const liveStatus = String(item.live_status ?? item.status ?? item.isLive ?? '1');
+    return {
+      id: item.id || idx + 1,
+      name: item.name || item.userName || item.nickname || '未知主播',
+      live_title: item.live_title || item.title || item.topic || '暂无标题',
+      live_online_count: toNum(item.live_online_count ?? item.online ?? item.viewers),
+      live_view_count: toNum(item.live_view_count ?? item.views ?? item.totalViews),
+      avatar: item.avatar || item.avatar_url || item.cover || '',
+      live_url: item.live_url || item.url || item.link || '',
+      totalFollowerCount: toNum(item.totalFollowerCount ?? item.followers ?? item.fans),
+      live_status: liveStatus
+    };
+  }).filter(i => i.live_status === '1');
+}
+
+function calcStats(list) {
+  const liveNum = list.length;
+  const onlineNum = list.reduce((s, i) => s + toNum(i.live_online_count), 0);
+  const viewNum = list.reduce((s, i) => s + toNum(i.live_view_count), 0);
+  return { liveNum, onlineNum, viewNum, allNum: liveNum };
+}
+
+async function fetchLiveApiJson(url) {
+  const r = await fetch(url, {
     headers: {
       'User-Agent': UA,
       'Referer': LIVE_REFERER || LIVE_PAGE_URL,
@@ -34,12 +58,44 @@ async function getLiveData() {
       'Origin': LIVE_ORIGIN
     }
   });
-  const data = await r.json();
-  if (!data || !data.list) throw new Error('invalid data');
-  // 仅保留正在直播中的房间。
-  data.list = data.list.filter(i => i.live_status === '1');
-  data.liveNum = data.list.length;
-  return data;
+  if (!r.ok) throw new Error(`live api http ${r.status}`);
+  return r.json();
+}
+
+async function getLiveDataGeneric() {
+  if (!LIVE_PAGE_URL || !LIVE_API_URL) {
+    throw new Error('live source not configured: LIVE_PAGE_URL/LIVE_API_URL');
+  }
+  // generic: 先抓页面取 token，再请求 API（兼容常见反爬流程）。
+  const pageRes = await fetch(LIVE_PAGE_URL, {
+    headers: { 'User-Agent': UA, 'Accept': 'text/html' }
+  });
+  if (!pageRes.ok) throw new Error(`live page http ${pageRes.status}`);
+  const html = await pageRes.text();
+  const reg = new RegExp(LIVE_TOKEN_REGEX);
+  const m = html.match(reg);
+  const token = m && m[1] ? m[1] : '';
+
+  // 若 API URL 中含有 {token}，自动替换；否则直接请求。
+  const url = token ? LIVE_API_URL.replace('{token}', encodeURIComponent(token)) : LIVE_API_URL;
+  const data = await fetchLiveApiJson(url);
+  const rawList = readPath(data, LIVE_LIST_PATH);
+  const list = normalizeLiveList(rawList);
+  return { ...calcStats(list), list };
+}
+
+async function getLiveDataJson() {
+  if (!LIVE_API_URL) throw new Error('live source not configured: LIVE_API_URL');
+  // json: 直接请求 JSON 接口，无需页面抓 token。
+  const data = await fetchLiveApiJson(LIVE_API_URL);
+  const rawList = readPath(data, LIVE_LIST_PATH);
+  const list = normalizeLiveList(rawList);
+  return { ...calcStats(list), list };
+}
+
+async function getLiveData() {
+  if (LIVE_PROVIDER === 'json') return getLiveDataJson();
+  return getLiveDataGeneric();
 }
 
 router.get('/live', async (req, res) => {
